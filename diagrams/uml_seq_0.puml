@@ -1,0 +1,34 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+actor "Кладовщик" as KL
+boundary "ЭкранПриёмкиТСД" as UI
+control "КонтроллерПриёмки" as C
+entity "ЗаказПоставщику" as Z
+entity "Товар" as T
+entity "Партия" as P
+entity "АктРасхождений" as A
+KL -> UI : выбрать заказ поставщику
+UI -> C : открытьПриёмку(заказ)
+C -> Z : получитьСтроки()
+C --> UI : ожидаемые позиции
+loop для каждой упаковки
+  KL -> UI : сканировать штрихкод, ввести кол-во и оценку качества
+  UI -> C : зафиксировать(позиция, кол-во, качество)
+end
+KL -> UI : завершить приёмку
+UI -> C : завершить()
+C -> C : сверить с заказом()
+alt есть расхождения
+  C -> A : создать(позиции, разница)
+end
+loop для каждой позиции
+  C -> T : срокРеализации()
+  C -> P : создать(товар, кол-во, дата, годенДо, себестоимость)
+end
+C -> Z : setСтатус("Принят")
+C --> UI : партии оприходованы, этикетки
+@enduml

@@ -1,0 +1,50 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+left to right direction
+actor "Менеджер\nпо закупкам" as MZ
+actor "Кладовщик" as KL
+actor "Продавец-\nфлорист" as PF
+actor "Директор" as DIR
+actor "Аналитик" as AN
+actor "Администратор" as AD
+actor "Кассы / 1С" as KKT <<system>>
+actor "Интернет-магазин" as WEB <<system>>
+actor "Поставщик" as SUP
+rectangle "ИС планирования закупок и продаж цветов" {
+  usecase "Авторизоваться" as U0
+  usecase "Вести номенклатуру\nи поставщиков" as U1
+  usecase "Принять поставку" as U2
+  usecase "Учесть продажи" as U3
+  usecase "Обработать\nонлайн-заказ" as U4
+  usecase "Построить прогноз\nспроса" as U5
+  usecase "Сформировать план\nзакупок" as U6
+  usecase "Утвердить заказ" as U7
+  usecase "Отправить заказ\nпоставщику" as U8
+  usecase "Уценить или списать\nпартию" as U9
+  usecase "Сформировать\nаналитический отчёт" as U10
+  usecase "Администрировать\nсистему" as U11
+}
+MZ --> U1
+MZ --> U6
+KL --> U2
+KL --> U9
+PF --> U9
+DIR --> U7
+DIR --> U10
+AN --> U5
+AN --> U10
+AD --> U11
+U3 <-- KKT
+U4 <-- WEB
+U6 ..> U5 : <<include>>
+U6 ..> U8 : <<include>>
+U7 .> U6 : <<extend>>
+U8 --> SUP
+U2 ..> U0 : <<include>>
+U6 ..> U0 : <<include>>
+U9 ..> U0 : <<include>>
+@enduml

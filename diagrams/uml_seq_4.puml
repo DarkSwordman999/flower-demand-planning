@@ -1,0 +1,24 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+actor "Директор" as DIR
+boundary "ЭкранОтчётов" as UI
+control "СервисАналитики" as S
+entity "Продажа" as PR
+entity "Списание" as W
+entity "Партия" as P
+entity "Прогноз" as F
+DIR -> UI : выбрать отчёт и период
+UI -> S : сформировать(вид, период)
+S -> PR : выбрать(период)
+S -> W : выбрать(период)
+S -> P : себестоимость(период)
+S -> F : прогнозы(период)
+S -> S : рассчитать долю списаний, оборачиваемость, ABC/XYZ, WAPE
+S --> UI : таблицы и графики
+DIR -> UI : выгрузить в XLSX
+UI --> DIR : файл отчёта
+@enduml

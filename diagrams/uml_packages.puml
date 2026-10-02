@@ -1,0 +1,30 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+package "ui (граничные классы)" as ui
+package "purchasing (планирование закупок)" as pur
+package "inventory (партии и запасы)" as inv
+package "sales (продажи и заказы)" as sal
+package "forecasting (прогнозирование, ML)" as fc
+package "integration (1С, кассы, сайт, погода)" as integ
+package "reporting (аналитика)" as rep
+package "domain (общие сущности)" as dom
+ui ..> pur
+ui ..> inv
+ui ..> sal
+ui ..> rep
+pur ..> fc
+pur ..> inv
+sal ..> inv
+fc ..> sal
+sal ..> integ
+fc ..> integ
+pur ..> dom
+inv ..> dom
+sal ..> dom
+fc ..> dom
+rep ..> dom
+@enduml

@@ -25,7 +25,7 @@ def topic(key):
     a, b = importlib.import_module("topic_flowers"), importlib.import_module("topic_flowers2")
     return {
         "name": a.NAME, "short": a.SHORT, "literature": a.LITERATURE,
-        "laws": a.LAB12["laws"], "concl": a.LAB12["concl"], "secret": a.LAB12["secret"],
+        "laws": a.LAB12["laws"], "concl": a.LAB12["concl"], "secret": a.LAB12["secret"], "slug": a.SLUG,
         "lab3": a.LAB3, "lab4": a.LAB4, "lab56": b.LAB56, "lab78": b.LAB78, "lab910": b.LAB910,
         "arch": a.ARCH_PUML, "er": a.ER_PUML, "tree": a.TREE, "viewpoints": a.VIEWPOINTS,
     }

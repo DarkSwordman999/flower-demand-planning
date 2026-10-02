@@ -1,0 +1,29 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+control "ПланировщикЗадач" as SCH
+control "СервисПрогнозирования" as S
+entity "Продажа" as PR
+entity "СобытиеКалендаря" as EV
+participant "Погодный сервис" as W
+control "ПостроительПризнаков" as FB
+entity "МодельПрогноза" as M
+entity "Прогноз" as F
+SCH -> S : рассчитатьПрогноз(дата) [ежедневно 03:00]
+S -> PR : историяПродаж(период)
+S -> EV : события(горизонт)
+S -> W : прогнозПогоды(14 дней)
+W --> S : температура, осадки
+S -> FB : построить(продажи, события, погода)
+FB -> FB : лаги, скользящие средние, календарь, признак дефицита
+FB --> S : матрица признаков
+S -> M : получитьОпубликованную()
+loop для каждого квантиля (P50, P80, P95)
+  S -> M : predict(признаки, квантиль)
+end
+S -> F : сохранить(товар, место, дата, P50, P80, P95)
+S --> SCH : прогноз рассчитан
+@enduml

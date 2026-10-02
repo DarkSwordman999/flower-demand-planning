@@ -1,0 +1,38 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+node "ПК менеджера / директора\n<<device>>" as pc {
+  artifact "Веб-браузер" as br
+}
+node "ТСД кладовщика\n<<Android>>" as tsd {
+  artifact "Браузер ТСД" as br2
+}
+node "Сервер Компании\n<<Linux, Docker>>" as app {
+  component "web-frontend\n(nginx + React)" as fe
+  component "backend-api\n(FastAPI)" as be
+  component "forecast-service\n(LightGBM)" as fs
+  component "scheduler\n(Celery)" as sch
+  component "integration-gateway" as gw
+  database "PostgreSQL\n(flora_db)" as db
+}
+node "Кассы салонов\n<<ККТ>>" as kkt
+node "Сервер «1С:Розница»" as c1
+node "Интернет-магазин" as web
+node "Погодный сервис" as wth
+node "Почтовый сервер" as mail
+br --> fe : HTTPS
+br2 --> fe : HTTPS
+fe --> be : REST
+be --> db : SQL
+sch --> fs : запуск расчёта
+fs --> db : прогнозы
+be --> gw
+gw --> c1 : HTTP / OData
+c1 --> kkt : чеки
+gw --> web : REST API
+gw --> wth : HTTPS
+gw --> mail : SMTP (заказы поставщикам)
+@enduml

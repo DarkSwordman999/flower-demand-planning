@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+~$*.docx
+.venv/
+tools/report_generator/plantuml.jar
+tools/report_generator/out_test/

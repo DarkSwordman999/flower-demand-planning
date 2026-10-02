@@ -1,0 +1,20 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+left to right direction
+rectangle ":ЭкранПланаЗакупок" as UI
+rectangle ":СервисПланированияЗакупок" as S
+rectangle ":Прогноз" as F
+rectangle ":Партия" as P
+rectangle ":УсловиеПоставки" as U
+rectangle ":ЗаказПоставщику" as Z
+UI -- S : "1: сформироватьПлан() →\n8: ← рекомендуемый заказ"
+S -- F : "2: квантили() →"
+S -- P : "3: доступныйЗапас() →"
+S -- U : "4: условия() →"
+S -- S : "5: рассчитатьОбъём()\n6: округлитьДоКратности()"
+S -- Z : "7: создать(строки) →"
+@enduml

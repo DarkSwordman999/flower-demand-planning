@@ -1,0 +1,45 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+left to right direction
+actor "Менеджер\nпо закупкам" as MZ
+actor "Продавец-\nфлорист" as PF
+actor "Директор" as DIR
+rectangle "Клиентская часть\n(веб-интерфейс, ТСД)" as UI
+rectangle "Серверная часть ИС" as SRV {
+  rectangle "Подсистема НСИ\n(номенклатура, поставщики)" as A
+  rectangle "Подсистема учёта\nзапасов и партий" as B
+  rectangle "Подсистема учёта\nпродаж и заказов" as C
+  rectangle "Подсистема прогнозирования\nспроса (ML-модуль)" as D
+  rectangle "Подсистема\nпланирования закупок" as E
+  rectangle "Подсистема управления\nсроками и уценкой" as F
+  rectangle "Подсистема аналитики\nи отчётности" as G
+}
+database "БД учёта\n(PostgreSQL)" as DB
+database "Хранилище\nмоделей" as MR
+rectangle "Кассы (ККТ)\nи 1С" as KKT
+rectangle "Интернет-\nмагазин" as WEB
+rectangle "Поставщики" as SUP
+rectangle "Погодный\nсервис" as WTH
+MZ --> UI
+PF --> UI
+DIR --> UI
+UI --> A
+UI --> B
+UI --> E
+UI --> G
+KKT --> C
+WEB --> C
+C --> D
+WTH --> D
+D --> E
+B --> E
+B --> F
+E --> SUP
+D --> MR
+B --> DB
+C --> DB
+@enduml

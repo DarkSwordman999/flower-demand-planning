@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     latitude: float = 54.19
     longitude: float = 37.62
 
+    # адрес сайта для активной выгрузки остатков и цен каждые 15 минут (С-14); пусто — сайт сам опрашивает API
+    shop_webhook_url: str = ""
+
     scheduler_enabled: bool = True
     timezone: str = "Europe/Moscow"
     cors_origins: str = ""

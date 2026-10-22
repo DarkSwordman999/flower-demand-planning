@@ -70,3 +70,36 @@ def test_settings(client, login):
     assert r.json()["weekly_budget"] == 500000
     assert client.put("/api/admin/settings", headers=h, json={"нет_такого": 1}).status_code == 400
     assert client.put("/api/admin/settings", headers=login("florist"), json={"weekly_budget": 1}).status_code == 403
+
+
+def test_backup_sqlite(client, login):
+    h = login("admin")
+    r = client.post("/api/admin/backups", headers=h)
+    assert r.status_code == 200, r.text
+    name = r.json()["name"]
+    assert [b["name"] for b in client.get("/api/admin/backups", headers=h).json()] == [name]
+    f = client.get(f"/api/admin/backups/{name}", headers=h)
+    assert f.status_code == 200 and f.content[:15] == b"SQLite format 3"
+    assert client.get("/api/admin/backups/..%2Fsecret", headers=h).status_code == 404
+    assert client.get("/api/admin/jobs", headers=login("director")).json() == {"running": False, "jobs": []}
+
+
+def test_scheduler_jobs_run(session):
+    from floraplan import scheduler
+    from floraplan.models import IntegrationLog
+    scheduler.job_onec()     # пустая папка — без записи
+    scheduler.job_backup()
+    session.expire_all()
+    msgs = [x.message for x in session.query(IntegrationLog).filter_by(system="scheduler")]
+    assert any("резервная копия" in m for m in msgs)
+
+
+def test_scheduler_starts_with_all_jobs(session):
+    from floraplan import scheduler
+    s = scheduler.start(paused=True)
+    try:
+        assert {j.id for j in s.get_jobs()} == {"forecast", "onec", "weather", "shop", "backup"}
+        f = s.get_job("forecast").trigger
+        assert "hour='3'" in str(f)
+    finally:
+        s.shutdown(wait=False)

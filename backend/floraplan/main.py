@@ -23,8 +23,15 @@ def _routers():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    get_settings().ensure_dirs()
+    s = get_settings()
+    s.ensure_dirs()
+    app.state.scheduler = None
+    if s.scheduler_enabled:
+        from .scheduler import start
+        app.state.scheduler = start()
     yield
+    if app.state.scheduler is not None:
+        app.state.scheduler.shutdown(wait=False)
 
 
 def create_app() -> FastAPI:

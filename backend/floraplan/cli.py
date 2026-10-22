@@ -35,6 +35,24 @@ def cmd_create_user(args) -> None:
     print("создан", args.login)
 
 
+def cmd_scheduler(args) -> None:
+    from .scheduler import run_forever
+    run_forever()
+
+
+def cmd_backup(args) -> None:
+    from .services import backup
+    print("резервная копия:", backup.make())
+
+
+def cmd_forecast(args) -> None:
+    from . import db
+    from .services import forecasting
+    with db.session() as s:
+        r = forecasting.run(s, trigger="manual")
+        print(r.status, r.message)
+
+
 def _safe_url() -> str:
     from .config import get_settings
     url = get_settings().db_url
@@ -63,6 +81,10 @@ def main(argv: list[str] | None = None) -> None:
     a.add_argument("role")
     a.add_argument("--name", default="")
     a.set_defaults(func=cmd_create_user)
+
+    sub.add_parser("scheduler", help="планировщик задач отдельным процессом").set_defaults(func=cmd_scheduler)
+    sub.add_parser("backup", help="резервная копия БД").set_defaults(func=cmd_backup)
+    sub.add_parser("forecast", help="рассчитать прогноз спроса").set_defaults(func=cmd_forecast)
 
     args = p.parse_args(argv)
     args.func(args)

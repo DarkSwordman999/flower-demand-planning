@@ -35,6 +35,31 @@ def cmd_create_user(args) -> None:
     print("создан", args.login)
 
 
+def cmd_demo(args) -> None:
+    import time
+    from . import db, migrate
+    from .demo import DEMO_PASSWORD, generate, reset
+    from .services import forecasting
+    t0 = time.time()
+    migrate.upgrade()
+    with db.session() as s:
+        if args.reset:
+            reset(s)
+        generate(s, log=lambda m: print("  ·", m, flush=True))
+        r = forecasting.run(s, trigger="manual")
+        print("  · прогноз:", r.message, flush=True)
+        m = forecasting.published_model(s)
+        ev = forecasting.evaluate(s, m)
+        m.wape, m.bias = ev["wape"], ev["bias"]
+        m.details = {"candidate": {"wape": ev["wape"], "bias": ev["bias"],
+                                   "period": [str(ev["period"][0]), str(ev["period"][1])],
+                                   "groups": {str(k): v for k, v in ev["groups"].items()}}}
+        s.commit()
+        print(f"  · WAPE недельного прогноза по группам: {ev['wape'] * 100:.1f} %", flush=True)
+    print(f"Демо-данные загружены за {time.time() - t0:.0f} с. Пользователи: admin/admin и "
+          f"director, buyer, storekeeper, florist, shop, analyst — пароль «{DEMO_PASSWORD}»")
+
+
 def cmd_scheduler(args) -> None:
     from .scheduler import run_forever
     run_forever()
@@ -82,6 +107,9 @@ def main(argv: list[str] | None = None) -> None:
     a.add_argument("--name", default="")
     a.set_defaults(func=cmd_create_user)
 
+    a = sub.add_parser("demo", help="загрузить демонстрационные данные (в пустую БД)")
+    a.add_argument("--reset", action="store_true", help="сначала удалить все данные")
+    a.set_defaults(func=cmd_demo)
     sub.add_parser("scheduler", help="планировщик задач отдельным процессом").set_defaults(func=cmd_scheduler)
     sub.add_parser("backup", help="резервная копия БД").set_defaults(func=cmd_backup)
     sub.add_parser("forecast", help="рассчитать прогноз спроса").set_defaults(func=cmd_forecast)

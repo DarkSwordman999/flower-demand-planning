@@ -55,7 +55,7 @@ def recommendations(db: Session, location_id: int | None = None, today: date | N
         else:
             share = rest / b.available
             disc = lo + (hi - lo) * share + (10 if days_left == 0 else 0)
-            disc = min(hi, max(lo, round(disc / 5) * 5))
+            disc = float(min(hi, max(lo, round(disc / 5) * 5)))
         out.append({**inv.batch_row(b, today, n), "forecast_sales": round(expected, 1), "unsold": round(rest, 1),
                     "recommended_discount": disc,
                     "recommendation": ("уценить" if disc > b.discount_pct + 1e-9 else

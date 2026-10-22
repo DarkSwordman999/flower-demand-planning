@@ -46,6 +46,9 @@ def cmd_demo(args) -> None:
         if args.reset:
             reset(s)
         generate(s, log=lambda m: print("  ·", m, flush=True))
+        from datetime import date, timedelta
+        for back in (28, 14):   # прошлые расчёты — как будто планировщик уже работал (для отчёта о точности)
+            forecasting.run(s, base=date.today() - timedelta(days=back), trigger="schedule")
         r = forecasting.run(s, trigger="manual")
         print("  · прогноз:", r.message, flush=True)
         m = forecasting.published_model(s)

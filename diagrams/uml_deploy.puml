@@ -13,7 +13,7 @@ node "ТСД кладовщика\n<<Android>>" as tsd {
 node "Сервер Компании\n<<Linux, Docker>>" as app {
   component "web-frontend\n(nginx + React)" as fe
   component "backend-api\n(FastAPI)" as be
-  component "forecast-service\n(LightGBM)" as fs
+  component "forecast-service\n(statsmodels)" as fs
   component "scheduler\n(Celery)" as sch
   component "integration-gateway" as gw
   database "PostgreSQL\n(flora_db)" as db

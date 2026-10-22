@@ -1,0 +1,70 @@
+# ФлораПлан на сервере компании (ПР 7-8, объединённая диаграмма компонентов и размещения):
+#   web-frontend (nginx + React) → backend-api (FastAPI) → PostgreSQL; scheduler — расчёт прогноза в 03:00,
+#   обмен с «1С», погода, резервные копии.
+# Запуск:  cp .env.example .env  (задать пароли)  &&  docker compose up -d
+# Демо-данные:  docker compose exec api floraplan demo
+name: floraplan
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: flora_db
+      POSTGRES_USER: flora
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?задайте DB_PASSWORD в .env}
+      TZ: Europe/Moscow
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flora -d flora_db"]
+      interval: 5s
+      retries: 20
+
+  api:
+    build: { context: .., dockerfile: deploy/Dockerfile.backend }
+    image: ${IMAGE_PREFIX:-floraplan}/backend:${TAG:-latest}
+    restart: unless-stopped
+    depends_on: { db: { condition: service_healthy } }
+    environment: &env
+      FLORAPLAN_DATABASE_URL: postgresql+psycopg://flora:${DB_PASSWORD}@db:5432/flora_db
+      FLORAPLAN_SECRET_KEY: ${SECRET_KEY:?задайте SECRET_KEY в .env}
+      FLORAPLAN_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      FLORAPLAN_SHOP_API_KEY: ${SHOP_API_KEY:-shop-demo-key}
+      FLORAPLAN_ONEC_API_KEY: ${ONEC_API_KEY:-1c-demo-key}
+      FLORAPLAN_SMTP_HOST: ${SMTP_HOST:-}
+      FLORAPLAN_SMTP_PORT: ${SMTP_PORT:-587}
+      FLORAPLAN_SMTP_USER: ${SMTP_USER:-}
+      FLORAPLAN_SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      FLORAPLAN_SMTP_FROM: ${SMTP_FROM:-zakupki@floraplan.local}
+      FLORAPLAN_SHOP_WEBHOOK_URL: ${SHOP_WEBHOOK_URL:-}
+      FLORAPLAN_SCHEDULER_ENABLED: "false"
+    volumes:
+      - floradata:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      retries: 30
+
+  scheduler:
+    build: { context: .., dockerfile: deploy/Dockerfile.backend }
+    image: ${IMAGE_PREFIX:-floraplan}/backend:${TAG:-latest}
+    restart: unless-stopped
+    depends_on: { api: { condition: service_healthy } }
+    environment:
+      <<: *env
+    command: ["floraplan", "scheduler"]
+    volumes:
+      - floradata:/data
+
+  web:
+    build: { context: .., dockerfile: deploy/Dockerfile.web }
+    image: ${IMAGE_PREFIX:-floraplan}/web:${TAG:-latest}
+    restart: unless-stopped
+    depends_on: [api]
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+
+volumes:
+  pgdata:
+  floradata:

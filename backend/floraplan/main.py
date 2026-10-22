@@ -15,8 +15,8 @@ STATIC = Path(__file__).resolve().parent / "static"
 
 
 def _routers():
-    from .api import admin, auth, forecast, inventory, nsi, onec, sales, shop
-    return [m.router for m in (auth, admin, nsi, inventory, sales, onec, shop, forecast)]
+    from .api import admin, auth, forecast, inventory, nsi, onec, purchasing, sales, shop
+    return [m.router for m in (auth, admin, nsi, inventory, sales, onec, shop, forecast, purchasing)]
 
 
 @asynccontextmanager

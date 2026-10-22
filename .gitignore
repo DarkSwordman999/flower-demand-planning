@@ -4,3 +4,14 @@ __pycache__/
 .venv/
 tools/report_generator/plantuml.jar
 tools/report_generator/out_test/
+# приложение
+backend/data/
+backend/floraplan/static/
+backend/build/
+backend/dist/
+*.egg-info/
+.pytest_cache/
+frontend/node_modules/
+frontend/dist/
+release/
+.env

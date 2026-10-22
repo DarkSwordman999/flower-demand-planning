@@ -440,7 +440,8 @@ class Forecast(Base):
     p50: Mapped[float] = mapped_column(Float)
     p80: Mapped[float] = mapped_column(Float)
     p95: Mapped[float] = mapped_column(Float)
-    sigma: Mapped[float] = mapped_column(Float, default=0)     # СКО дневной ошибки ряда
+    sigma: Mapped[float] = mapped_column(Float, default=0)     # относительное СКО дневной ошибки ряда
+    event_coef: Mapped[float] = mapped_column(Float, default=1)   # применённый календарный коэффициент дня
     algorithm: Mapped[str] = mapped_column(String(30), default="")
 
 

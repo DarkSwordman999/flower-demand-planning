@@ -222,6 +222,7 @@ def upgrade() -> None:
     sa.Column('p80', sa.Float(), nullable=False),
     sa.Column('p95', sa.Float(), nullable=False),
     sa.Column('sigma', sa.Float(), nullable=False),
+    sa.Column('event_coef', sa.Float(), nullable=False),
     sa.Column('algorithm', sa.String(length=30), nullable=False),
     sa.ForeignKeyConstraint(['location_id'], ['locations.id'], ),
     sa.ForeignKeyConstraint(['product_id'], ['products.id'], ),

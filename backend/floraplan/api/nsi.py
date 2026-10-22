@@ -375,3 +375,11 @@ def create_reason(body: GroupIn, me: User = Depends(require("admin")), db: Sessi
     db.add(r)
     _save(db, me, "Добавлена причина списания", "reason", r, r.name)
     return {"id": r.id, "name": r.name}
+
+
+@router.put("/writeoff-reasons/{rid}")
+def update_reason(rid: int, body: GroupIn, me: User = Depends(require("admin")), db: Session = Depends(get_db)):
+    r = _get(db, WriteOffReason, rid, "Причина списания")
+    r.name = body.name.strip()
+    _save(db, me, "Изменена причина списания", "reason", r, r.name)
+    return {"id": r.id, "name": r.name}

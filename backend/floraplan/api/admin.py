@@ -1,7 +1,7 @@
 """Администрирование: пользователи и роли, журнал действий, параметры системы."""
 from datetime import date, datetime, time
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -113,3 +113,38 @@ def put_settings(values: dict, me: User = Depends(require("director")), db: Sess
     audit.log(db, me, "Изменены параметры системы", "settings", "", ", ".join(f"{k}={v}" for k, v in values.items()))
     db.commit()
     return appsettings.get_all(db)
+
+
+# ------------------------------------------------------------------ резервное копирование (Н-1)
+@router.post("/backups")
+def make_backup(me: User = Depends(admin_only), db: Session = Depends(get_db)):
+    from ..services import backup
+    p = backup.make()
+    audit.log(db, me, "Резервная копия БД", "backup", p.name)
+    db.commit()
+    return {"name": p.name}
+
+
+@router.get("/backups")
+def backups(_: User = Depends(admin_only)):
+    from ..services import backup
+    return backup.listing()
+
+
+@router.get("/backups/{name}")
+def download_backup(name: str, _: User = Depends(admin_only)):
+    from fastapi.responses import FileResponse
+    from ..services import backup
+    return FileResponse(backup.path_of(name), filename=name)
+
+
+@router.get("/jobs")
+def jobs(request: Request, _: User = Depends(require("analyst", "director"))):
+    """Задачи планировщика и время следующего запуска."""
+    sched = getattr(request.app.state, "scheduler", None)
+    names = {"forecast": "Прогноз спроса", "onec": "Чеки «1С» из папки обмена", "weather": "Погода",
+             "shop": "Выгрузка остатков на сайт", "backup": "Резервная копия БД"}
+    if sched is None:
+        return {"running": False, "jobs": []}
+    return {"running": True, "jobs": [{"id": j.id, "name": names.get(j.id, j.id), "next_run": j.next_run_time}
+                                      for j in sched.get_jobs()]}

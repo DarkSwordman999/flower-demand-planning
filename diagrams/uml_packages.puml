@@ -8,7 +8,7 @@ package "ui (граничные классы)" as ui
 package "purchasing (планирование закупок)" as pur
 package "inventory (партии и запасы)" as inv
 package "sales (продажи и заказы)" as sal
-package "forecasting (прогнозирование, ML)" as fc
+package "forecasting (прогнозирование)" as fc
 package "integration (1С, кассы, сайт, погода)" as integ
 package "reporting (аналитика)" as rep
 package "domain (общие сущности)" as dom

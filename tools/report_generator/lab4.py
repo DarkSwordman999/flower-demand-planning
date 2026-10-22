@@ -78,5 +78,4 @@ def blocks(T, figs):
                 b.append(("p", it))
     b += [("h1", "5 Заключение")]
     b += [("p", x) for x in D["conclusion"]]
-    b += [("h1", "6 Список используемой литературы"), ("src", T["literature"] + D.get("lit_extra", []))]
     return b

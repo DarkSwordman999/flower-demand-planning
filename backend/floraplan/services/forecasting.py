@@ -230,6 +230,7 @@ def run(db: Session, base: date | None = None, trigger: str = "manual", user=Non
     t0 = time.time()
     try:
         rows, meta = compute(db, base, h, model, int(appsettings.get(db, "history_days")))
+        db.commit()   # закончить читающую транзакцию: запись результата — в новой, без устаревшего снимка
         if rows:
             db.execute(insert(Forecast), [dict(x, run_id=r.id) for x in rows])
         r.series = len({(x["product_id"], x["location_id"]) for x in rows})

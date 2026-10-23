@@ -8,10 +8,9 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
 
 from .config import get_settings
-from .db import get_db
+from .db import session as db_session
 from .models import User
 
 _ITER = 200_000
@@ -39,7 +38,7 @@ def make_token(user: User) -> str:
     return jwt.encode({"sub": str(user.id), "role": user.role, "exp": exp}, s.secret_key, algorithm="HS256")
 
 
-def current_user(token: str | None = Depends(oauth2), db: Session = Depends(get_db)) -> User:
+def current_user(token: str | None = Depends(oauth2)) -> User:
     if not token:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Требуется вход в систему",
                             headers={"WWW-Authenticate": "Bearer"})
@@ -48,7 +47,8 @@ def current_user(token: str | None = Depends(oauth2), db: Session = Depends(get_
     except jwt.PyJWTError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Сеанс истёк, войдите снова",
                             headers={"WWW-Authenticate": "Bearer"})
-    user = db.get(User, int(payload["sub"]))
+    with db_session("autocommit") as s:   # только чтение, без транзакции: не мешает записи в сессии запроса
+        user = s.get(User, int(payload["sub"]))
     if user is None or not user.active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Пользователь заблокирован")
     return user

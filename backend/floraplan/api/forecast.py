@@ -8,7 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .. import audit
-from ..db import get_db
+from ..db import get_db, get_db_long
 from ..errors import DomainError, NotFound
 from ..models import (ALGORITHMS, MODEL_STATUSES, DailySales, Forecast, ForecastModel, ForecastRun, Location, Product,
                       User, Weather)
@@ -27,7 +27,7 @@ def run_out(r: ForecastRun) -> dict:
 
 
 @router.post("/run", summary="Рассчитать прогноз сейчас")
-def run_now(me: User = Depends(require("analyst", "buyer")), db: Session = Depends(get_db)):
+def run_now(me: User = Depends(require("analyst", "buyer")), db: Session = Depends(get_db_long)):
     r = fs.run(db, trigger="manual", user=me)
     if r.status != "ok":
         raise DomainError(r.message, status=500)
@@ -154,7 +154,7 @@ def _js(ev: dict) -> dict:
 
 
 @router.post("/models", summary="Пересчитать параметры: новая версия-кандидат с оценкой на отложенном периоде")
-def create_model(body: ModelIn, me: User = Depends(analysts), db: Session = Depends(get_db)):
+def create_model(body: ModelIn, me: User = Depends(analysts), db: Session = Depends(get_db_long)):
     if body.algorithm not in ALGORITHMS:
         raise DomainError("Неизвестный алгоритм")
     ver = (db.query(func.max(ForecastModel.version)).scalar() or 0) + 1
@@ -172,7 +172,7 @@ def create_model(body: ModelIn, me: User = Depends(analysts), db: Session = Depe
 
 
 @router.post("/models/{mid}/publish", summary="Опубликовать версию (только если WAPE не хуже действующей)")
-def publish(mid: int, me: User = Depends(analysts), db: Session = Depends(get_db)):
+def publish(mid: int, me: User = Depends(analysts), db: Session = Depends(get_db_long)):
     m = db.get(ForecastModel, mid)
     if m is None:
         raise NotFound("Версия модели не найдена")

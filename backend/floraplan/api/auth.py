@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from .. import audit
 from ..db import get_db
+from ..db import session as db_session
 from ..models import ROLES, User
 from ..security import current_user, hash_password, make_token, verify_password
 
@@ -34,7 +35,9 @@ class TokenOut(BaseModel):
 
 @router.post("/token", response_model=TokenOut, summary="Получить токен по логину и паролю")
 def login(form: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.login == form.username.strip()).first()
+    # поиск и проверка пароля (PBKDF2, ~0,3 с) — вне пишущей транзакции, чтобы входы не держали блокировку записи
+    with db_session("autocommit") as s:
+        user = s.query(User).filter(User.login == form.username.strip()).first()
     if user is None or not user.active or not verify_password(form.password, user.password_hash):
         raise HTTPException(401, "Неверный логин или пароль")
     audit.log(db, user, "Вход в систему")

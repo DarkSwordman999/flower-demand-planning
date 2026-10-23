@@ -2,7 +2,7 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import text
@@ -61,6 +61,8 @@ def create_app() -> FastAPI:
     if (STATIC / "index.html").exists():
         @app.get("/{path:path}", include_in_schema=False)
         def spa(path: str):
+            if path == "api" or path.startswith("api/"):
+                raise HTTPException(404, "Не найдено")
             f = (STATIC / path).resolve()
             if path and f.is_file() and STATIC in f.parents:
                 return FileResponse(f)

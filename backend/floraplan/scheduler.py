@@ -15,10 +15,10 @@ from .config import get_settings
 log = logging.getLogger("floraplan.scheduler")
 
 
-def _job(name: str):
+def _job(name: str, mode: str = "immediate"):
     def wrap(fn):
         def run():
-            s = db.session()
+            s = db.session(mode)
             try:
                 msg = fn(s)
                 if msg:
@@ -36,7 +36,7 @@ def _job(name: str):
     return wrap
 
 
-@_job("прогноз спроса")
+@_job("прогноз спроса", mode="deferred")
 def job_forecast(s):
     from .services import forecasting
     r = forecasting.run(s, trigger="schedule")

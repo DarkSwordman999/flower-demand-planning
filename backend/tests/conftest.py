@@ -68,7 +68,7 @@ def db_url(tmp_path, monkeypatch, template_db):
 @pytest.fixture
 def session(db_url):
     db.configure(db_url)
-    s = db.session()
+    s = db.session("autocommit")   # наблюдающая сессия теста не держит транзакцию между запросами к API
     yield s
     s.close()
     db.engine().dispose()

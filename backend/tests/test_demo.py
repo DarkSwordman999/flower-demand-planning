@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 import pytest
 
+from floraplan import db
 from floraplan.demo import generate
 from floraplan.models import (Batch, DailySales, OnlineOrder, Product, PurchaseOrder, Sale, StockMove, User,
                               WriteOff)
@@ -10,7 +11,8 @@ from floraplan.services import purchasing as pur
 
 
 def test_demo_generates_consistent_data(client, login, session):
-    res = generate(session, history_days=150, sim_days=21, log=lambda m: None)
+    with db.session() as s:      # генерация — одной транзакцией, как в floraplan demo
+        res = generate(s, history_days=150, sim_days=21, log=lambda m: None)
     assert res["products"] == session.query(Product).count() == 27
     # остаток каждой партии = сумма движений по ней
     for b in session.query(Batch).limit(300):
@@ -33,6 +35,7 @@ def test_demo_generates_consistent_data(client, login, session):
 
 
 def test_demo_refuses_non_empty_db(session):
-    generate(session, history_days=40, sim_days=7, log=lambda m: None)
-    with pytest.raises(RuntimeError):
-        generate(session, history_days=40, sim_days=7, log=lambda m: None)
+    with db.session() as s:
+        generate(s, history_days=40, sim_days=7, log=lambda m: None)
+        with pytest.raises(RuntimeError):
+            generate(s, history_days=40, sim_days=7, log=lambda m: None)

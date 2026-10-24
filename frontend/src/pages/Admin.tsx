@@ -4,7 +4,7 @@ import { DownloadOutlined, PlusOutlined } from "@ant-design/icons";
 import type { Dayjs } from "dayjs";
 import { api, download } from "../api";
 import { useAuth } from "../auth";
-import { useAction, useLoad, useRefs } from "../hooks";
+import { refreshRefs, useAction, useLoad, useRefs } from "../hooks";
 import { dt, iso } from "../format";
 
 export default function Admin() {
@@ -224,7 +224,10 @@ function Settings() {
   }, [data, form]);
   const save = async () => {
     const v = await form.validateFields();
-    if (await run(() => api.put("/api/admin/settings", v), "Параметры сохранены")) reload();
+    if (await run(() => api.put("/api/admin/settings", v), "Параметры сохранены")) {
+      refreshRefs("settings");
+      reload();
+    }
   };
   return (
     <Card size="small" style={{ maxWidth: 720 }}>

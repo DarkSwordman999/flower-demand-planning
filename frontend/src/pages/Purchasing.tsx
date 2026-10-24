@@ -21,7 +21,7 @@ export default function Purchasing() {
           <Col xs={24} md={12}>
             <Card size="small">
               <Statistic title={`Бюджет закупок на неделю ${d(b.week_from)}–${d(b.week_to)}, руб.`} value={money(b.budget)} />
-              <Progress percent={Math.round((b.committed / b.budget) * 100)} status={b.committed > b.budget ? "exception" : "normal"} format={() => `использовано ${money(b.committed)}`} />
+              <Progress percent={b.budget > 0 ? Math.round((b.committed / b.budget) * 100) : 100} status={b.committed > b.budget ? "exception" : "normal"} format={() => `использовано ${money(b.committed)}`} />
             </Card>
           </Col>
           <Col xs={24} md={12}>

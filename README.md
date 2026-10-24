@@ -28,7 +28,7 @@ python demo.py                  # демо-данные: 3 поставщика,
 python app.py                   # http://127.0.0.1:5000/
 ```
 
-Вход: `admin` / `admin`. Тесты: `python -m pytest`.
+Вход: `admin` / `admin`.
 
 ## Устройство
 
@@ -39,7 +39,6 @@ app/
   db.py           подключение к SQLite
   schema.sql      таблицы БД
   demo.py         демонстрационные данные
-  test_logic.py   тесты
   templates/      HTML-страницы (шаблоны Jinja)
   static/         стили
 ```

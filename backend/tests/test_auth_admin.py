@@ -98,7 +98,7 @@ def test_scheduler_starts_with_all_jobs(session):
     from floraplan import scheduler
     s = scheduler.start(paused=True)
     try:
-        assert {j.id for j in s.get_jobs()} == {"forecast", "onec", "weather", "shop", "backup"}
+        assert {j.id for j in s.get_jobs()} == {"forecast", "onec", "weather", "shop", "backup", "anonymize"}
         f = s.get_job("forecast").trigger
         assert "hour='3'" in str(f)
     finally:

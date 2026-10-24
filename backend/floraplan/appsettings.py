@@ -19,6 +19,7 @@ DEFAULTS: dict[str, object] = {
     "service_level_min": 0.5,           # границы целевого уровня обслуживания (newsvendor)
     "service_level_max": 0.95,
     "salvage_share": 0.0,               # доля себестоимости, возвращаемая при списании
+    "pd_retention_days": 365,           # Б-1, 152-ФЗ: через сколько дней обезличивать закрытые онлайн-заказы
 }
 
 

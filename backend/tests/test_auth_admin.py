@@ -6,6 +6,8 @@ import pytest
 from floraplan.models import User
 from floraplan.security import hash_password, verify_password
 
+PG = bool(os.environ.get("FLORAPLAN_TEST_DATABASE_URL"))
+
 
 def test_password_hash_roundtrip():
     h = hash_password("Розы-2026")
@@ -78,19 +80,17 @@ def test_settings(client, login):
     assert client.put("/api/admin/settings", headers=login("florist"), json={"weekly_budget": 1}).status_code == 403
 
 
-def test_backup_sqlite(client, login):
+def test_backup(client, login):
     h = login("admin")
     r = client.post("/api/admin/backups", headers=h)
     assert r.status_code == 200, r.text
     name = r.json()["name"]
     assert [b["name"] for b in client.get("/api/admin/backups", headers=h).json()] == [name]
     f = client.get(f"/api/admin/backups/{name}", headers=h)
-    assert f.status_code == 200 and f.content[:15] == b"SQLite format 3"
+    assert f.status_code == 200 and f.content[:5] == (b"PGDMP" if PG else b"SQLit")
     assert client.get("/api/admin/backups/..%2Fsecret", headers=h).status_code == 404
     assert client.get("/api/admin/jobs", headers=login("director")).json() == {"running": False, "jobs": []}
 
-
-PG = bool(os.environ.get("FLORAPLAN_TEST_DATABASE_URL"))
 
 
 @pytest.mark.skipif(PG and not shutil.which("pg_restore"), reason="нет pg_dump/pg_restore")

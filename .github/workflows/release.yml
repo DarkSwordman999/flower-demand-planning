@@ -13,11 +13,11 @@ jobs:
     name: Windows-сборка (без установки)
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Интерфейс
@@ -44,7 +44,7 @@ jobs:
           $v = "${{ github.ref_name }}".TrimStart("v")
           Copy-Item packaging/windows/README.txt release/dist/FloraPlan/
           Compress-Archive -Path release/dist/FloraPlan -DestinationPath "release/FloraPlan-$v-windows-x64.zip"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows
           path: release/*.zip
@@ -54,8 +54,8 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true   # дополнительный способ поставки; релиз выходит и без него
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -79,12 +79,12 @@ jobs:
     needs: [windows]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: windows
           path: dist
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           name: ФлораПлан ${{ github.ref_name }}
           body_path: docs/RELEASE_NOTES.md

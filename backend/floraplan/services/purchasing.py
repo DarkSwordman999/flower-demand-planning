@@ -21,7 +21,7 @@ from ..errors import DomainError, NotFound
 from ..models import (Batch, DailySales, Forecast, HolidayScenario, Location, Product, PurchaseOrder,
                       PurchaseOrderLine, Supplier, SupplyCondition, User)
 from . import forecasting as fs
-from . import mail, tsmodels as tm, xlsx
+from . import supplier_send, tsmodels as tm, xlsx
 from .numbering import next_number
 
 IN_TRANSIT = ("approved", "sent", "confirmed", "in_transit")
@@ -385,13 +385,9 @@ def transition(db: Session, o: PurchaseOrder, action: str, user: User, comment: 
     if action == "approve":
         o.approved_by = user.id
     if action == "send":
-        data = order_xlsx(db, o)
-        where = mail.send(o.supplier.email, f"Заказ {o.number} от {o.order_date:%d.%m.%Y}",
-                          f"Здравствуйте!\n\nНаправляем заказ № {o.number}. Поставка {o.expected_date:%d.%m.%Y}, "
-                          f"адрес: {o.location.name}.\nСумма {o.total:.2f} руб.\n\n"
-                          f"{appsettings.get(db, 'company_name')}", data, f"{o.number}.xlsx")
+        sent = supplier_send.send(db, o)     # адаптер по способу отправки поставщика (e-mail, API)
         o.sent_at = datetime.now()
-        comment = (comment + "; " if comment else "") + ("отправлен по e-mail" if where == "smtp" else f"письмо: {where}")
+        comment = (comment + "; " if comment else "") + sent
     if comment:
         o.comment = (o.comment + "\n" if o.comment else "") + f"{datetime.now():%d.%m %H:%M} {user.login}: {comment}"
     o.status = target

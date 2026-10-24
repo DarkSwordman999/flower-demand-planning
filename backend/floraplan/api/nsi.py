@@ -11,6 +11,7 @@ from ..db import get_db
 from ..models import (LOCATION_TYPES, CalendarEvent, HolidayScenario, Location, Product, ProductGroup, Supplier,
                       SupplyCondition, User, WriteOffReason)
 from ..security import require
+from ..services import supplier_send
 
 router = APIRouter(prefix="/api/nsi", tags=["НСИ"])
 anyone = require()
@@ -132,12 +133,43 @@ class SupplierIn(BaseModel):
     order_weekdays: str = "0,3"
     reliability: float = Field(default=0.95, ge=0, le=1)
     active: bool = True
+    order_method: str = "email"
+    order_url: str = Field(default="", max_length=300)
+    order_api_key: str | None = Field(default=None, max_length=200, description="пусто/не передан — не менять")
 
 
 def supplier_out(s: Supplier) -> dict:
     return {"id": s.id, "name": s.name, "country": s.country, "lead_time_days": s.lead_time_days,
             "min_order_sum": s.min_order_sum, "email": s.email, "order_weekdays": s.order_weekdays,
-            "reliability": s.reliability, "active": s.active, "imported": s.imported}
+            "reliability": s.reliability, "active": s.active, "imported": s.imported,
+            "order_method": s.order_method, "order_method_name": _method_name(s.order_method),
+            "order_url": s.order_url, "has_api_key": bool(s.order_api_key)}    # сам ключ не отдаётся
+
+
+def _method_name(code: str) -> str:
+    a = supplier_send.ADAPTERS.get(code)
+    return a.name if a else code
+
+
+def _supplier_check(body: SupplierIn) -> None:
+    if not _weekdays_ok(body.order_weekdays):
+        raise HTTPException(400, "Дни заказа: номера дней недели через запятую, 0 — понедельник")
+    if body.order_method not in supplier_send.ADAPTERS:
+        raise HTTPException(400, "Неизвестный способ отправки заказа")
+    if body.order_method == "api" and not body.order_url.startswith(("http://", "https://")):
+        raise HTTPException(400, "Для отправки через API укажите адрес http(s)://…")
+
+
+def _supplier_fields(body: SupplierIn) -> dict:
+    v = body.model_dump()
+    if not v.get("order_api_key"):
+        v.pop("order_api_key")
+    return v
+
+
+@router.get("/order-methods", summary="Способы отправки заказов поставщикам (адаптеры)")
+def order_methods(_: User = Depends(anyone)):
+    return [{"code": a.code, "name": a.name} for a in supplier_send.ADAPTERS.values()]
 
 
 def _weekdays_ok(v: str) -> bool:
@@ -155,9 +187,8 @@ def suppliers(_: User = Depends(anyone), db: Session = Depends(get_db)):
 
 @router.post("/suppliers")
 def create_supplier(body: SupplierIn, me: User = Depends(require("buyer")), db: Session = Depends(get_db)):
-    if not _weekdays_ok(body.order_weekdays):
-        raise HTTPException(400, "Дни заказа: номера дней недели через запятую, 0 — понедельник")
-    s = Supplier(**body.model_dump())
+    _supplier_check(body)
+    s = Supplier(**_supplier_fields(body))
     db.add(s)
     _save(db, me, "Создан поставщик", "supplier", s, s.name)
     return supplier_out(s)
@@ -165,10 +196,9 @@ def create_supplier(body: SupplierIn, me: User = Depends(require("buyer")), db: 
 
 @router.put("/suppliers/{sid}")
 def update_supplier(sid: int, body: SupplierIn, me: User = Depends(require("buyer")), db: Session = Depends(get_db)):
-    if not _weekdays_ok(body.order_weekdays):
-        raise HTTPException(400, "Дни заказа: номера дней недели через запятую, 0 — понедельник")
+    _supplier_check(body)
     s = _get(db, Supplier, sid, "Поставщик")
-    for k, v in body.model_dump().items():
+    for k, v in _supplier_fields(body).items():
         setattr(s, k, v)
     _save(db, me, "Изменён поставщик", "supplier", s, s.name)
     return supplier_out(s)

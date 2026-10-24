@@ -62,7 +62,10 @@ def receive(db: Session, o: PurchaseOrder, items: list[dict], user: User, day: d
     audit.log(db, user, "Поставка принята", "order", o.number,
               f"партий {len(batches)}" + (f", акт расхождений {act.number}" if act else ""))
     db.flush()
-    return {"batches": [b.id for b in batches], "act_number": act.number if act else None, "act_lines": act_lines}
+    from .shop import reserve_waiting
+    reserved = reserve_waiting(db, o.location_id, user) if batches else []
+    return {"batches": [b.id for b in batches], "act_number": act.number if act else None, "act_lines": act_lines,
+            "reserved_preorders": reserved}
 
 
 def labels_html(batches: list[Batch]) -> str:

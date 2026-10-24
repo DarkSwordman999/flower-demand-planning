@@ -164,3 +164,23 @@ def test_sales_channel_marketplace(client, login, session):
     assert client.get("/api/shop/stock", headers={"X-API-Key": new}).status_code == 200
     client.put(f"/api/admin/channels/{ch['id']}", headers=admin, json=dict(body, active=False))
     assert client.get("/api/shop/stock", headers={"X-API-Key": new}).status_code == 401
+
+
+def test_preorder_reserved_when_goods_arrive(client, login, session):
+    """С-14: предзаказ резервируется сам, когда товар перемещён на место интернет-магазина."""
+    ref = reference(session)
+    r = client.post("/api/shop/orders", headers=KEY, json=_order("W-PRE", 25))
+    assert r.json()["status"] == "preorder"
+    oid = r.json()["order_id"]
+    late = client.post("/api/shop/orders", headers=KEY, json=_order("W-PRE2", 25, days=5)).json()["order_id"]
+    u = session.query(User).filter_by(login="storekeeper").one()
+    inv.create_batch(session, ref.rose, ref.wh.id, 30, 60, T, T + timedelta(days=8), u)
+    session.commit()
+    hs = login("storekeeper")
+    r = client.post("/api/inventory/transfer", headers=hs, json={"product_id": ref.rose.id, "from_location_id": ref.wh.id,
+                                                                 "to_location_id": ref.online.id, "qty": 30})
+    assert r.status_code == 200, r.text
+    session.expire_all()
+    # хватает на один заказ — резервируется тот, что доставлять раньше
+    assert session.get(OnlineOrder, oid).status == "reserved"
+    assert session.get(OnlineOrder, late).status == "preorder"

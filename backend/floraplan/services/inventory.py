@@ -130,6 +130,9 @@ def transfer(db: Session, product_id: int, src: int, dst: int, qty: float, user:
                                 kind="transfer_in"))
         out[-1].discount_pct = t.batch.discount_pct
     audit.log(db, user, "Перемещение товара", "product", product_id, f"{product.name}: {qty:g} {product.unit}, {ref}")
+    db.flush()
+    from .shop import reserve_waiting
+    reserve_waiting(db, dst, user)
     return out
 
 

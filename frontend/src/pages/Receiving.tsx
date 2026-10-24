@@ -39,7 +39,10 @@ function ToReceive() {
       <Result
         status={done.act_number ? "warning" : "success"}
         title={`Принято партий: ${done.batches.length}`}
-        subTitle={done.act_number ? `Есть расхождения — оформлен акт ${done.act_number}` : "Расхождений нет"}
+        subTitle={
+          (done.act_number ? `Есть расхождения — оформлен акт ${done.act_number}` : "Расхождений нет") +
+          (done.reserved_preorders?.length ? `. Зарезервированы предзаказы: ${done.reserved_preorders.join(", ")}` : "")
+        }
         extra={
           <Space wrap>
             {done.batches.length > 0 && (

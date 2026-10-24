@@ -85,7 +85,7 @@ def test_parallel_by_groups_matches_sequential(session, monkeypatch):
         rows, meta = fs.compute(session, base, 14, model, 400)
         out[w] = (sorted(rows, key=lambda x: (x["product_id"], x["location_id"], x["day"])), meta)
     get_settings.cache_clear()
-    assert out["1"][1]["workers"] == 1 and out["3"][1]["workers"] == 3      # три группы — три процесса
+    assert out["1"][1]["workers"] == 1 and out["3"][1]["workers"] == 3      # заданное число процессов
     assert out["1"][0] == out["3"][0] and out["1"][0]
     assert out["1"][1]["algorithms"] == out["3"][1]["algorithms"]
 
@@ -172,3 +172,24 @@ def test_weather_without_service(client, login, session):
     reference(session)
     w = client.get("/api/forecast/weather", headers=login("buyer")).json()
     assert len(w) == 14 and all(x["source"] == "climate" for x in w)
+
+
+def test_auto_workers_need_enough_series(monkeypatch):
+    """Р-1, автоматический режим: процесс добавляется не меньше чем на 100 рядов (запуск процесса дорог)."""
+    from floraplan.config import get_settings
+    monkeypatch.setenv("FLORAPLAN_FORECAST_WORKERS", "0")
+    monkeypatch.setattr(fs.os, "cpu_count", lambda: 8)
+    get_settings.cache_clear()
+    try:
+        assert [fs._workers(n) for n in (5, 135, 250, 1000)] == [1, 1, 2, 4]
+    finally:
+        get_settings.cache_clear()
+
+
+def test_split_large_groups_keeps_all_series():
+    import numpy as np
+    jobs = [fs.GroupJob(np.ones(3), np.ones(2), np.ones(2), [], {}, "auto", series=list(range(n))) for n in (50, 7, 3)]
+    parts = fs._split(jobs, 2)
+    assert len(parts) > 3 and max(len(p.series) for p in parts) <= 8
+    assert sorted(x for p in parts for x in p.series) == sorted(list(range(50)) + list(range(7)) + list(range(3)))
+    assert fs._split(jobs, 1) == jobs

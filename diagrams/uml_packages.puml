@@ -4,24 +4,28 @@ skinparam dpi 150
 skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam monochrome true
-package "ui (граничные классы)" as ui
+package "frontend/pages (экраны React)" as ui
+package "api (REST API, роли доступа)" as api
 package "purchasing (планирование закупок)" as pur
-package "inventory (партии и запасы)" as inv
-package "sales (продажи и заказы)" as sal
-package "forecasting (прогнозирование)" as fc
-package "integration (1С, кассы, сайт, погода)" as integ
-package "reporting (аналитика)" as rep
-package "domain (общие сущности)" as dom
-ui ..> pur
-ui ..> inv
-ui ..> sal
-ui ..> rep
+package "inventory, receiving, expiry\n(партии, приёмка, сроки)" as inv
+package "sales, shop (продажи и онлайн-заказы)" as sal
+package "forecasting, tsmodels (прогнозирование)" as fc
+package "onec, weather, supplier_send, mail\n(интеграции)" as integ
+package "analytics, xlsx (аналитика и отчёты)" as rep
+package "models (общие сущности)" as dom
+ui ..> api
+api ..> pur
+api ..> inv
+api ..> sal
+api ..> rep
+api ..> integ
 pur ..> fc
 pur ..> inv
+pur ..> integ
 sal ..> inv
 fc ..> sal
-sal ..> integ
 fc ..> integ
+integ ..> sal
 pur ..> dom
 inv ..> dom
 sal ..> dom

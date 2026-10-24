@@ -18,7 +18,7 @@ rectangle "Серверная часть ИС" as SRV {
   rectangle "Подсистема управления\nсроками и уценкой" as F
   rectangle "Подсистема аналитики\nи отчётности" as G
 }
-database "БД учёта\n(PostgreSQL)" as DB
+database "БД учёта\n(PostgreSQL / SQLite)" as DB
 database "Хранилище\nмоделей" as MR
 rectangle "Кассы (ККТ)\nи 1С" as KKT
 rectangle "Интернет-\nмагазин" as WEB

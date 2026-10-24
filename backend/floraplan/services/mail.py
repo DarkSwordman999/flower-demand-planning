@@ -5,6 +5,7 @@ from email.message import EmailMessage
 from pathlib import Path
 
 from ..config import get_settings
+from ..errors import DomainError
 
 
 def send(to: str, subject: str, body: str, attachment: bytes | None = None, filename: str = "") -> str:
@@ -17,12 +18,15 @@ def send(to: str, subject: str, body: str, attachment: bytes | None = None, file
         if attachment:
             msg.add_attachment(attachment, maintype="application",
                                subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=filename)
-        with smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=30) as smtp:
-            if s.smtp_tls:
-                smtp.starttls()
-            if s.smtp_user:
-                smtp.login(s.smtp_user, s.smtp_password)
-            smtp.send_message(msg)
+        try:
+            with smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=30) as smtp:
+                if s.smtp_tls:
+                    smtp.starttls()
+                if s.smtp_user:
+                    smtp.login(s.smtp_user, s.smtp_password)
+                smtp.send_message(msg)
+        except (smtplib.SMTPException, OSError) as e:    # сервер недоступен, неверный пароль, адрес отклонён
+            raise DomainError(f"Почтовый сервер не отправил письмо: {e}", status=502)
         return "smtp"
     s.ensure_dirs()
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")

@@ -203,3 +203,21 @@ def test_send_order_through_supplier_api(client, login, session, ready, monkeypa
     assert url == "https://supplier.example/orders" and headers == {"Authorization": "Bearer s3cr3t"}
     assert payload["number"] == o["number"] and payload["lines"]
     assert all(x["qty"] > 0 and x["barcode"] for x in payload["lines"])
+
+
+def test_send_order_smtp_failure_keeps_status(client, login, session, ready, monkeypatch):
+    """Почтовый сервер недоступен — понятная ошибка 502, заказ остаётся «Утверждён» (повторить отправку)."""
+    import smtplib
+    from floraplan.services import mail
+    ref = ready
+    hb = login("buyer")
+    monkeypatch.setattr(get_settings(), "smtp_host", "smtp.example")
+
+    def refuse(*a, **k):
+        raise smtplib.SMTPConnectError(421, "сервер недоступен")
+    monkeypatch.setattr(mail.smtplib, "SMTP", refuse)
+    o = client.post("/api/purchasing/orders", headers=hb, json={"supplier_id": ref.ru.id}).json()
+    assert client.post(f"/api/purchasing/orders/{o['id']}/submit", headers=hb).json()["status"] == "approved"
+    r = client.post(f"/api/purchasing/orders/{o['id']}/send", headers=hb)
+    assert r.status_code == 502 and "Почтовый сервер" in r.json()["detail"]
+    assert client.get(f"/api/purchasing/orders/{o['id']}", headers=hb).json()["status"] == "approved"

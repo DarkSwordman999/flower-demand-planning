@@ -159,3 +159,58 @@ def test_director_sees_reports_and_audit(server, browser):
     page.click(".ant-tabs-tab:has-text('Журнал действий')")
     page.wait_for_selector("td:has-text('Вход в систему')")
     assert not page.errors
+
+
+def test_admin_connects_sales_channel(server, browser):
+    """Р-4: администратор подключает маркетплейс, получает ключ один раз; новый ключ отменяет старый."""
+    page = login(browser, server, "admin", "admin")
+    page.goto(server + "/admin")
+    page.click(".ant-tabs-tab:has-text('Каналы продаж')")
+    page.click("button:has-text('Подключить канал')")
+    modal = page.locator(".ant-modal:visible")
+    modal.locator(".ant-form-item:has-text('Название') input").fill("Маркетплейс")
+    modal.locator(".ant-form-item:has-text('Код') input").fill("market")
+    modal.locator(".ant-form-item:has-text('Место хранения') .ant-select").click()
+    page.locator(".ant-select-dropdown:visible .ant-select-item-option:has-text('Интернет')").first.click()
+    modal.locator("button:has-text('Сохранить')").click()
+    key = page.locator(".ant-modal-confirm code:has-text('ch_')").inner_text().strip()
+    assert key.startswith("ch_")
+    page.click(".ant-modal-confirm button:has-text('OK')")
+    page.wait_for_selector("td:has-text('market')")
+    assert httpx.get(server + "/api/shop/stock", headers={"X-API-Key": key}).status_code == 200
+    # новый ключ: старый перестаёт действовать
+    page.click("tr.ant-table-row:has-text('market')")
+    page.click(".ant-modal:visible button:has-text('Новый ключ API')")
+    page.click(".ant-modal-confirm button:has-text('Выдать')")
+    new_key = page.locator(".ant-modal-confirm code:has-text('ch_')").inner_text().strip()
+    assert new_key != key
+    assert httpx.get(server + "/api/shop/stock", headers={"X-API-Key": key}).status_code == 401
+    assert httpx.get(server + "/api/shop/stock", headers={"X-API-Key": new_key}).status_code == 200
+    assert not page.errors
+
+
+def _supplier_method(page, method: str, url: str | None = None):
+    page.locator(".ant-tabs-tabpane-active tr.ant-table-row").first.locator("button").first.click()
+    modal = page.locator(".ant-modal:visible")
+    modal.locator(".ant-form-item:has-text('Способ отправки заказа') .ant-select").click()
+    page.locator(f".ant-select-dropdown:visible .ant-select-item-option:has-text('{method}')").click()
+    if url is not None:
+        modal.locator(".ant-form-item:has-text('Адрес API поставщика') input").fill(url)
+    modal.locator("button:has-text('Сохранить')").click()
+
+
+def test_buyer_sets_supplier_order_method(server, browser):
+    """Р-4: способ отправки заказа в карточке поставщика; для API без адреса — понятная ошибка."""
+    page = login(browser, server, "buyer")
+    page.goto(server + "/nsi")
+    page.click(".ant-tabs-tab:has-text('Поставщики')")
+    page.wait_for_selector(".ant-tabs-tabpane-active tr.ant-table-row")
+    _supplier_method(page, "API поставщика", "")
+    page.wait_for_selector(".ant-message-error:has-text('укажите адрес')")
+    page.locator(".ant-modal:visible .ant-form-item:has-text('Адрес API поставщика') input").fill("https://supplier.example/orders")
+    page.click(".ant-modal:visible button:has-text('Сохранить')")
+    success(page, "Сохранено")
+    page.wait_for_selector(".ant-tabs-tabpane-active td:has-text('API поставщика')")
+    _supplier_method(page, "E-mail")     # вернуть как было: заказы демо-поставщиков уходят письмом
+    page.wait_for_selector(".ant-tabs-tabpane-active td:has-text('API поставщика')", state="detached")
+    assert not page.errors

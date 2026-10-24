@@ -106,3 +106,16 @@ jobs:
           for i in $(seq 1 40); do curl -fsk https://localhost/api/health && exit 0; sleep 3; done
           docker compose -f deploy/docker-compose.yml --profile https logs proxy
           exit 1
+      - name: Резервная копия и восстановление PostgreSQL в контейнере (Н-1)
+        env:
+          DB_PASSWORD: ci
+          SECRET_KEY: ci
+        run: |
+          c="docker compose -f deploy/docker-compose.yml"
+          $c exec -T api floraplan backup
+          name=$($c exec -T api sh -c 'ls -t /data/backup | head -1')
+          $c stop api scheduler
+          $c run --rm -T api floraplan restore "$name" --yes
+          $c start api scheduler
+          for i in $(seq 1 40); do curl -fs http://localhost:8080/api/health && exit 0; sleep 3; done
+          exit 1

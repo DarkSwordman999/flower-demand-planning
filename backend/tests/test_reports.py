@@ -84,3 +84,12 @@ def test_api_reports_and_xlsx(client, login, session, data):
     assert client.get("/api/reports/sales", headers=login("florist")).status_code == 403
     d = client.get("/api/dashboard", headers=login("florist")).json()
     assert d["sales_week"] > 0 and d["writeoff_share_pct"] is not None
+
+
+def test_every_report_exports_to_xlsx(client, login, data):
+    """Все отчёты выгружаются в XLSX — в том числе с «/» в названии (ABC/XYZ-анализ)."""
+    h = login("analyst")
+    for rep in client.get("/api/reports", headers=h).json():
+        x = client.get(f"/api/reports/{rep['code']}/xlsx", headers=h, params={"date_from": str(D1)})
+        assert x.status_code == 200 and x.content[:2] == b"PK", rep["code"]
+        assert "/" not in x.headers["content-disposition"].split("''", 1)[1]

@@ -4,6 +4,7 @@
 ФлораПлан.exe demo       — загрузить демонстрационные данные (в пустую БД);
 ФлораПлан.exe <команда>  — любая команда floraplan (init-db, backup, create-user, …).
 """
+import multiprocessing
 import os
 import socket
 import sys
@@ -35,6 +36,7 @@ def _ask_demo() -> bool:
 
 
 def main() -> None:
+    multiprocessing.freeze_support()   # процессы расчёта прогноза (Р-1) в собранном exe
     os.environ.setdefault("PYTHONIOENCODING", "utf-8")
     try:
         sys.stdout.reconfigure(encoding="utf-8")

@@ -11,6 +11,7 @@ from sqlalchemy import create_engine, text
 
 os.environ.setdefault("FLORAPLAN_SCHEDULER_ENABLED", "false")
 os.environ.setdefault("FLORAPLAN_WEATHER_ENABLED", "false")
+os.environ.setdefault("FLORAPLAN_FORECAST_WORKERS", "1")   # параллельный расчёт проверяется отдельным тестом
 
 from floraplan import db, migrate  # noqa: E402
 from floraplan.bootstrap import ensure_base  # noqa: E402

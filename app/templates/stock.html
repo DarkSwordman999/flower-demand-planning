@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Остатки по партиям</h1>
+<table>
+  <tr><th>Партия</th><th>Товар</th><th>Поступила</th><th>Годна до</th><th>Остаток</th><th>Состояние</th><th></th></tr>
+  {% for b in batches %}
+  <tr class="{{ 'red' if b.status == 'просрочена' else 'yellow' if b.status == 'истекает' else '' }}">
+    <td>{{ b.id }}</td>
+    <td>{{ b.name }}</td>
+    <td>{{ b.received_date }}</td>
+    <td>{{ b.expiry_date }}</td>
+    <td>{{ b.remaining }}</td>
+    <td>{{ b.status }}</td>
+    <td>
+      <form method="post" action="{{ url_for('writeoff', batch_id=b.id) }}" class="inline">
+        <select name="reason">
+          <option>Истёк срок</option>
+          <option>Потеря вида</option>
+          <option>Брак</option>
+        </select>
+        <button>Списать</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

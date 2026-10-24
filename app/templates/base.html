@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ФлораПлан</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  {% if session.user %}
+  <nav>
+    <b>ФлораПлан</b>
+    <a href="{{ url_for('stock') }}">Остатки</a>
+    <a href="{{ url_for('sales') }}">Продажи</a>
+    <a href="{{ url_for('receive') }}">Поставка</a>
+    <a href="{{ url_for('forecast') }}">Прогноз</a>
+    <a href="{{ url_for('order') }}">Заказ</a>
+    <a href="{{ url_for('report') }}">Отчёт</a>
+    <a href="{{ url_for('products') }}">Товары</a>
+    <a href="{{ url_for('suppliers') }}">Поставщики</a>
+    <a href="{{ url_for('logout') }}" class="right">Выйти ({{ session.user }})</a>
+  </nav>
+  {% endif %}
+  <main>
+    {% for msg in get_flashed_messages() %}
+      <p class="flash">{{ msg }}</p>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

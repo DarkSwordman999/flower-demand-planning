@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Поставщики</h1>
+<table>
+  <tr><th>Название</th><th>Телефон</th><th>Срок поставки, дн.</th></tr>
+  {% for s in suppliers %}
+  <tr><td>{{ s.name }}</td><td>{{ s.phone }}</td><td>{{ s.lead_time_days }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Добавить поставщика</h2>
+<form method="post" class="box">
+  <label>Название <input name="name" required></label>
+  <label>Телефон <input name="phone"></label>
+  <label>Срок поставки, дней <input name="lead_time_days" type="number" min="0" value="2" required></label>
+  <button>Добавить</button>
+</form>
+{% endblock %}

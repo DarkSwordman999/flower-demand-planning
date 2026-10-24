@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Вход</h1>
+<form method="post" class="box">
+  <label>Логин <input name="login" required autofocus></label>
+  <label>Пароль <input name="password" type="password" required></label>
+  <button>Войти</button>
+</form>
+{% endblock %}

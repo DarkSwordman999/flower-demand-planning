@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Продажи</h1>
+<form method="post" class="box">
+  <label>Товар
+    <select name="product_id">
+      {% for p in products %}<option value="{{ p.id }}">{{ p.name }} — {{ p.price }} ₽</option>{% endfor %}
+    </select>
+  </label>
+  <label>Количество <input name="quantity" type="number" min="1" value="1" required></label>
+  <button>Продать</button>
+</form>
+
+<h2>Последние продажи</h2>
+<table>
+  <tr><th>Дата</th><th>Товар</th><th>Партия</th><th>Кол-во</th><th>Сумма, ₽</th></tr>
+  {% for s in sales %}
+  <tr>
+    <td>{{ s.sale_date }}</td>
+    <td>{{ s.name }}</td>
+    <td>{{ s.batch_id or '—' }}</td>
+    <td>{{ s.quantity }}</td>
+    <td>{{ "%.2f"|format(s.quantity * s.price) }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

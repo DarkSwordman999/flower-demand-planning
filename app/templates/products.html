@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Товары</h1>
+<table>
+  <tr><th>Название</th><th>Категория</th><th>Цена, ₽</th><th>Закупка, ₽</th><th>Срок, дн.</th><th>Упаковка</th><th>Поставщик</th></tr>
+  {% for p in products %}
+  <tr>
+    <td>{{ p.name }}</td><td>{{ p.category }}</td><td>{{ p.price }}</td><td>{{ p.purchase_price }}</td>
+    <td>{{ p.shelf_life_days }}</td><td>{{ p.pack_size }}</td><td>{{ p.supplier or '—' }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>Добавить товар</h2>
+<form method="post" class="box">
+  <label>Название <input name="name" required></label>
+  <label>Категория <input name="category"></label>
+  <label>Цена продажи <input name="price" type="number" step="0.01" min="0" required></label>
+  <label>Цена закупки <input name="purchase_price" type="number" step="0.01" min="0" required></label>
+  <label>Срок реализации, дней <input name="shelf_life_days" type="number" min="1" required></label>
+  <label>Упаковка, шт. <input name="pack_size" type="number" min="1" value="1" required></label>
+  <label>Поставщик
+    <select name="supplier_id">
+      {% for s in suppliers %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <button>Добавить</button>
+</form>
+{% endblock %}

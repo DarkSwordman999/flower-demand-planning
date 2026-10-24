@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Отчёт за 30 дней</h1>
+<p>Выручка: <b>{{ "%.2f"|format(revenue) }} ₽</b>. Потери от списаний: <b>{{ "%.2f"|format(loss) }} ₽</b>.</p>
+
+<h2>Продажи по товарам</h2>
+<table>
+  <tr><th>Товар</th><th>Продано, шт.</th><th>Выручка, ₽</th></tr>
+  {% for r in sales %}
+  <tr><td>{{ r.name }}</td><td>{{ r.qty }}</td><td>{{ "%.2f"|format(r.revenue) }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>Списания</h2>
+<table>
+  <tr><th>Товар</th><th>Списано, шт.</th><th>Потери по закупочной цене, ₽</th></tr>
+  {% for r in writeoffs %}
+  <tr><td>{{ r.name }}</td><td>{{ r.qty }}</td><td>{{ "%.2f"|format(r.loss) }}</td></tr>
+  {% else %}
+  <tr><td colspan="3">Списаний не было</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

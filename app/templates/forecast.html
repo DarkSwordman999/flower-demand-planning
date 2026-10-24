@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Прогноз спроса</h1>
+<p>Метод — скользящее среднее: средние продажи в день за последние {{ days }} дней.</p>
+<table>
+  <tr><th>Товар</th><th>Продажи за {{ days }} дней</th><th>В среднем в день</th><th>Прогноз на неделю</th></tr>
+  {% for r in rows %}
+  <tr>
+    <td>{{ r.name }}</td>
+    <td class="small">{{ r.history | join(", ") }}</td>
+    <td>{{ "%.1f"|format(r.avg) }}</td>
+    <td>{{ "%.0f"|format(r.week) }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

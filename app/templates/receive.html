@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Приём поставки</h1>
+<p>Срок годности партии считается автоматически: сегодня + срок реализации товара.</p>
+<form method="post" class="box">
+  <label>Товар
+    <select name="product_id">
+      {% for p in products %}<option value="{{ p.id }}">{{ p.name }} (срок {{ p.shelf_life_days }} дн.)</option>{% endfor %}
+    </select>
+  </label>
+  <label>Количество <input name="quantity" type="number" min="1" required></label>
+  <button>Принять</button>
+</form>
+{% endblock %}

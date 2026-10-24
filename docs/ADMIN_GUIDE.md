@@ -4,7 +4,7 @@
 
 ### 1. Windows без установки (один компьютер или небольшая сеть)
 
-Скачайте `FloraPlan-<версия>-windows-x64.zip` со страницы [Releases](https://github.com/DarkSwordman999/flower-demand-planning/releases), распакуйте и запустите `ФлораПлан.exe`. База — SQLite в папке `data` рядом с программой, планировщик задач работает внутри программы. Для доступа с других компьютеров и ТСД задайте `FLORAPLAN_HOST=0.0.0.0` (файл `.env` рядом с exe) и откройте порт в брандмауэре.
+Скачайте `FloraPlan-<версия>-windows-x64.zip` со страницы [Releases](https://github.com/DarkSwordman999/flower-demand-planning/releases), распакуйте и запустите `ФлораПлан.exe`. База — SQLite в папке `data` рядом с программой, планировщик задач работает внутри программы. Для доступа с других компьютеров и ТСД задайте `FLORAPLAN_HOST=0.0.0.0` (файл `.env` рядом с exe) и откройте порт в брандмауэре. Для HTTPS укажите там же сертификат и ключ в формате PEM: `FLORAPLAN_SSL_CERTFILE=C:\ФлораПлан\cert.pem`, `FLORAPLAN_SSL_KEYFILE=C:\ФлораПлан\key.pem`.
 
 ### 2. Сервер в Docker (ПР 7-8, диаграмма размещения)
 
@@ -16,7 +16,7 @@ docker compose up -d --build
 docker compose exec api floraplan demo     # при необходимости — демо-данные
 ```
 
-Сервисы: `db` (PostgreSQL 16), `api` (FastAPI), `scheduler` (задачи по расписанию), `web` (nginx + интерфейс, порт `HTTP_PORT`, по умолчанию 8080). Данные — тома `pgdata` и `floradata`. Для HTTPS (требование Б-1) поставьте перед `web` обратный прокси с сертификатом (nginx, Caddy, Traefik) или терминатор TLS провайдера.
+Сервисы: `db` (PostgreSQL 16), `api` (FastAPI), `scheduler` (задачи по расписанию), `web` (nginx + интерфейс, порт `HTTP_PORT`, по умолчанию 8080). Данные — тома `pgdata` и `floradata`. HTTPS (требование Б-1) — сервис `proxy` (Caddy): задайте в `.env` домен сервера `DOMAIN` и запустите `docker compose --profile https up -d`. Caddy сам получает и продлевает сертификат Let's Encrypt (порты 80 и 443 должны быть доступны из интернета) и добавляет заголовок HSTS; при `DOMAIN=localhost` или IP-адресе используется сертификат собственного центра Caddy. Порт `HTTP_PORT` после этого стоит закрыть в брандмауэре.
 
 ### 3. Из исходников
 
@@ -39,6 +39,8 @@ cd ../backend && floraplan demo && floraplan run --host 0.0.0.0
 | `SHOP_WEBHOOK_URL` | адрес сайта для выгрузки остатков и цен каждые 15 минут |
 | `WEATHER_ENABLED`, `LATITUDE`, `LONGITUDE` | погодный сервис Open-Meteo (по умолчанию — Тула) |
 | `FORECAST_WORKERS` | процессов для расчёта прогноза: товарные группы считаются параллельно; `0` — по числу физических ядер (по умолчанию), `1` — в одном процессе |
+| `HOST`, `PORT`, `NO_BROWSER` | адрес и порт веб-сервера Windows-версии (`127.0.0.1`, `8000`); `NO_BROWSER=true` — не открывать браузер |
+| `SSL_CERTFILE`, `SSL_KEYFILE` | HTTPS прямо в сервере (`floraplan run`, Windows-версия): сертификат и ключ PEM |
 | `SCHEDULER_ENABLED` | планировщик внутри веб-сервера (в Docker — `false`, работает сервис `scheduler`) |
 | `TIMEZONE` | часовой пояс расписания (`Europe/Moscow`) |
 

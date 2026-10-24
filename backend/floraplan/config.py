@@ -14,8 +14,15 @@ def _default_data_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "data"
 
 
+def _env_files() -> tuple[str, ...]:
+    # .env в текущем каталоге; в Windows-версии — ещё и рядом с exe (запуск ярлыком из другого каталога)
+    if getattr(sys, "frozen", False):
+        return (str(Path(sys.executable).resolve().parent / ".env"), ".env")
+    return (".env",)
+
+
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="FLORAPLAN_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="FLORAPLAN_", env_file=_env_files(), extra="ignore")
 
     data_dir: Path = _default_data_dir()
     # postgresql+psycopg://user:pass@host:5432/flora_db  или sqlite:///путь.db
@@ -46,6 +53,16 @@ class Settings(BaseSettings):
     # процессов для расчёта прогноза по товарным группам (Р-1); 0 — по числу физических ядер, 1 — в одном процессе
     forecast_workers: int = 0
 
+    # HTTPS прямо в сервере (Б-1): сертификат и закрытый ключ в формате PEM; пусто — HTTP
+    # (в Docker HTTPS обеспечивает прокси Caddy, см. deploy/docker-compose.yml)
+    ssl_certfile: str = ""
+    ssl_keyfile: str = ""
+
+    # адрес и порт веб-сервера Windows-версии (floraplan run принимает --host и --port)
+    host: str = "127.0.0.1"
+    port: int = 8000
+    no_browser: bool = False
+
     scheduler_enabled: bool = True
     timezone: str = "Europe/Moscow"
     cors_origins: str = ""
@@ -55,6 +72,13 @@ class Settings(BaseSettings):
         if self.database_url:
             return self.database_url
         return f"sqlite:///{(self.data_dir / 'floraplan.db').as_posix()}"
+
+    @property
+    def ssl(self) -> dict:
+        """Параметры TLS для uvicorn."""
+        if not self.ssl_certfile:
+            return {}
+        return {"ssl_certfile": self.ssl_certfile, "ssl_keyfile": self.ssl_keyfile or None}
 
     @property
     def outbox_dir(self) -> Path:

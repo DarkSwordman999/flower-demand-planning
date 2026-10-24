@@ -129,6 +129,10 @@ class Supplier(Base):
     lead_time_days: Mapped[int] = mapped_column(Integer, default=2)
     min_order_sum: Mapped[float] = mapped_column(Float, default=0)
     email: Mapped[str] = mapped_column(String(200), default="")
+    # способ отправки заказа (Р-4, адаптеры services/supplier_send.py): email — XLSX письмом, api — JSON в API
+    order_method: Mapped[str] = mapped_column(String(20), default="email", server_default="email")
+    order_url: Mapped[str] = mapped_column(String(300), default="", server_default="")
+    order_api_key: Mapped[str] = mapped_column(String(200), default="", server_default="")
     order_weekdays: Mapped[str] = mapped_column(String(20), default="0,3")  # дни формирования заказа, 0 — пн
     reliability: Mapped[float] = mapped_column(Float, default=0.95)        # доля поставок в срок
     active: Mapped[bool] = mapped_column(Boolean, default=True)

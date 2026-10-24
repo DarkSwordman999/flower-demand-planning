@@ -157,6 +157,7 @@ const WD = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
 
 function Suppliers() {
   const [conds, setConds] = useState<any>(null);
+  const methods = useLoad<any[]>(() => api.get("/api/nsi/order-methods"));
   return (
     <>
       <Crud
@@ -171,10 +172,11 @@ function Suppliers() {
           { title: "Мин. сумма", dataIndex: "min_order_sum", align: "right", render: money },
           { title: "Дни заказа", dataIndex: "order_weekdays", render: (v: string) => v.split(",").map((x) => WD[Number(x)]).join(", ") },
           { title: "E-mail", dataIndex: "email" },
+          { title: "Отправка заказа", dataIndex: "order_method_name" },
           { title: "Надёжность", dataIndex: "reliability", align: "right", render: (v: number) => `${Math.round(v * 100)} %` },
         ]}
         toBody={(v) => ({ ...v, order_weekdays: (v.order_weekdays || []).join(",") })}
-        toForm={(r) => ({ ...r, order_weekdays: r.order_weekdays.split(",").filter(Boolean) })}
+        toForm={(r) => ({ ...r, order_weekdays: r.order_weekdays.split(",").filter(Boolean), order_api_key: "" })}
         fields={[
           { name: "name", label: "Наименование", input: <Input />, required: true },
           { name: "country", label: "Страна", input: <Input />, initial: "Россия" },
@@ -188,6 +190,15 @@ function Suppliers() {
             initial: ["0", "3"],
           },
           { name: "email", label: "E-mail для заказов", input: <Input /> },
+          {
+            name: "order_method",
+            label: "Способ отправки заказа",
+            input: <Select options={(methods.data || []).map((m) => ({ value: m.code, label: m.name }))} />,
+            required: true,
+            initial: "email",
+          },
+          { name: "order_url", label: "Адрес API поставщика (для отправки через API)", input: <Input placeholder="https://…" />, initial: "" },
+          { name: "order_api_key", label: "Ключ API поставщика (пусто — не менять)", input: <Input.Password autoComplete="new-password" />, initial: "" },
           { name: "reliability", label: "Доля поставок в срок (0–1)", input: <InputNumber min={0} max={1} step={0.01} />, initial: 0.95 },
           { name: "active", label: "Активен", input: <Switch />, bool: true, initial: true },
         ]}

@@ -161,3 +161,45 @@ def test_scenario_schedule(client, login, session):
     imp = next(x for x in r["suppliers"] if x["supplier_id"] == ref.imp.id)
     assert imp["last_order_date"] == str(T + timedelta(days=12))
     assert all(date.fromisoformat(o["delivery_date"]) <= T + timedelta(days=17) for o in imp["orders"])
+
+
+def test_send_order_through_supplier_api(client, login, session, ready, monkeypatch):
+    """Р-4: способ отправки — адаптер у поставщика; заказ уходит JSON-ом в API поставщика."""
+    import httpx
+    from floraplan.services import supplier_send
+    ref = ready
+    hb = login("buyer")
+    sup = client.get("/api/nsi/suppliers", headers=hb).json()
+    body = next(s for s in sup if s["id"] == ref.ru.id)
+    body = {k: body[k] for k in ("name", "country", "lead_time_days", "min_order_sum", "email", "order_weekdays",
+                                 "reliability", "active")}
+    assert {m["code"] for m in client.get("/api/nsi/order-methods", headers=hb).json()} >= {"email", "api"}
+    r = client.put(f"/api/nsi/suppliers/{ref.ru.id}", headers=hb, json=dict(body, order_method="api"))
+    assert r.status_code == 400                                         # без адреса API
+    r = client.put(f"/api/nsi/suppliers/{ref.ru.id}", headers=hb,
+                   json=dict(body, order_method="api", order_url="https://supplier.example/orders", order_api_key="s3cr3t"))
+    assert r.status_code == 200 and r.json()["has_api_key"] and "order_api_key" not in r.json()
+    r = client.put(f"/api/nsi/suppliers/{ref.ru.id}", headers=hb,       # ключ без нового значения не стирается
+                   json=dict(body, order_method="api", order_url="https://supplier.example/orders"))
+    assert r.json()["has_api_key"]
+
+    calls = []
+
+    def fake_post(url, json, headers, timeout):
+        calls.append((url, json, headers))
+        if len(calls) == 1:
+            raise httpx.ConnectError("нет связи")
+        return httpx.Response(201, request=httpx.Request("POST", url))
+    monkeypatch.setattr(supplier_send.httpx, "post", fake_post)
+
+    o = client.post("/api/purchasing/orders", headers=hb, json={"supplier_id": ref.ru.id}).json()
+    assert client.post(f"/api/purchasing/orders/{o['id']}/submit", headers=hb).json()["status"] == "approved"
+    r = client.post(f"/api/purchasing/orders/{o['id']}/send", headers=hb)
+    assert r.status_code == 502 and "не приняло" in r.json()["detail"]
+    assert client.get(f"/api/purchasing/orders/{o['id']}", headers=hb).json()["status"] == "approved"
+    r = client.post(f"/api/purchasing/orders/{o['id']}/send", headers=hb).json()
+    assert r["status"] == "sent" and "API поставщика" in r["comment"]
+    url, payload, headers = calls[-1]
+    assert url == "https://supplier.example/orders" and headers == {"Authorization": "Bearer s3cr3t"}
+    assert payload["number"] == o["number"] and payload["lines"]
+    assert all(x["qty"] > 0 and x["barcode"] for x in payload["lines"])

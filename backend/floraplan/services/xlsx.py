@@ -1,5 +1,6 @@
 """Выгрузка таблиц в XLSX (С-16, С-11): заголовок, параметры, таблица с автошириной."""
 import io
+import re
 from datetime import date, datetime
 from urllib.parse import quote
 
@@ -9,13 +10,15 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 THIN = Side(style="thin", color="999999")
+_BAD_SHEET = re.compile(r"[\[\]:*?/\\]")           # недопустимы в имени листа Excel
+_BAD_FILE = re.compile(r'[<>:"/\\|?*\x00-\x1f]')   # недопустимы в имени файла Windows
 
 
 def build(title: str, headers: list[str], rows: list[list], meta: list[tuple[str, str]] | None = None,
           sheet: str = "Отчёт", footer: list[str] | None = None) -> bytes:
     wb = Workbook()
     ws = wb.active
-    ws.title = sheet[:31]
+    ws.title = _BAD_SHEET.sub("-", sheet)[:31] or "Отчёт"
     ws.append([title])
     ws["A1"].font = Font(bold=True, size=14)
     for k, v in meta or []:
@@ -56,5 +59,6 @@ def _cell(v):
 
 
 def response(data: bytes, filename: str) -> Response:
+    filename = _BAD_FILE.sub("-", filename)
     return Response(data, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}"})

@@ -83,6 +83,12 @@ def test_settings(client, login):
     r = client.put("/api/admin/settings", headers=h, json={"weekly_budget": 500000})
     assert r.json()["weekly_budget"] == 500000
     assert client.put("/api/admin/settings", headers=h, json={"нет_такого": 1}).status_code == 400
+    for bad in ({"weekly_budget": "много"}, {"forecast_hour": 25}, {"forecast_horizon": 7.5},
+                {"markdown_min": 60, "markdown_max": 50}, {"service_level_min": 0.99, "service_level_max": 0.9},
+                {"company_name": "  "}, {"expiring_days": True}):
+        r = client.put("/api/admin/settings", headers=h, json=bad)
+        assert r.status_code == 400 and r.json()["detail"], bad
+    assert client.get("/api/admin/settings", headers=h).json()["forecast_hour"] == 3
     assert client.put("/api/admin/settings", headers=login("florist"), json={"weekly_budget": 1}).status_code == 403
 
 
@@ -140,9 +146,16 @@ def test_scheduler_starts_with_all_jobs(session):
     from floraplan import scheduler
     s = scheduler.start(paused=True)
     try:
-        assert {j.id for j in s.get_jobs()} == {"forecast", "onec", "weather", "shop", "backup", "anonymize"}
+        assert {j.id for j in s.get_jobs()} == {"forecast", "onec", "weather", "shop", "backup", "anonymize",
+                                                "settings"}
         f = s.get_job("forecast").trigger
         assert "hour='3'" in str(f)
+        # директор перенёс расчёт на 05:00 — расписание меняется без перезапуска
+        from floraplan import appsettings
+        appsettings.set_many(session, {"forecast_hour": 5})
+        session.commit()
+        scheduler.sync_forecast_hour(s)
+        assert "hour='5'" in str(s.get_job("forecast").trigger)
     finally:
         s.shutdown(wait=False)
 

@@ -23,6 +23,51 @@ DEFAULTS: dict[str, object] = {
 }
 
 
+# допустимые значения: (целое ли, минимум, максимум, название для сообщения)
+LIMITS: dict[str, tuple[bool, float, float, str]] = {
+    "weekly_budget": (False, 0, 1e12, "Бюджет закупок на неделю"),
+    "expiring_days": (True, 0, 14, "«Срок истекает», дней"),
+    "markdown_min": (False, 1, 100, "Минимальная уценка, %"),
+    "markdown_max": (False, 1, 100, "Максимальная уценка, %"),
+    "discrepancy_pct": (False, 0, 100, "Порог акта расхождений, %"),
+    "change_reason_pct": (False, 0, 100, "Порог причины изменения заказа, %"),
+    "forecast_horizon": (True, 7, 60, "Горизонт прогноза, дней"),
+    "forecast_hour": (True, 0, 23, "Час расчёта прогноза"),
+    "history_days": (True, 90, 1500, "Глубина истории, дней"),
+    "service_level_min": (False, 0.5, 0.99, "Уровень обслуживания: не ниже"),
+    "service_level_max": (False, 0.5, 0.995, "Уровень обслуживания: не выше"),
+    "salvage_share": (False, 0, 1, "Доля себестоимости при списании"),
+    "pd_retention_days": (True, 30, 3650, "Срок обезличивания, дней"),
+}
+
+
+def validate(db: Session, values: dict) -> dict:
+    """Проверяет и приводит типы новых значений; ValueError — с текстом для пользователя."""
+    out = {}
+    for k, v in values.items():
+        if k not in DEFAULTS:
+            raise ValueError(f"Неизвестный параметр {k}")
+        if k == "company_name":
+            if not isinstance(v, str) or not v.strip() or len(v) > 200:
+                raise ValueError("Название организации: от 1 до 200 символов")
+            out[k] = v.strip()
+            continue
+        integer, lo, hi, name = LIMITS[k]
+        if isinstance(v, bool) or not isinstance(v, (int, float)):
+            raise ValueError(f"{name}: нужно число")
+        if integer and v != int(v):
+            raise ValueError(f"{name}: нужно целое число")
+        if not lo <= v <= hi:
+            raise ValueError(f"{name}: от {lo:g} до {hi:g}")
+        out[k] = int(v) if integer else float(v)
+    merged = {**get_all(db), **out}
+    if merged["markdown_min"] > merged["markdown_max"]:
+        raise ValueError("Минимальная уценка больше максимальной")
+    if merged["service_level_min"] > merged["service_level_max"]:
+        raise ValueError("Нижняя граница уровня обслуживания больше верхней")
+    return out
+
+
 def get(db: Session, key: str):
     row = db.get(Setting, key)
     if row is None:

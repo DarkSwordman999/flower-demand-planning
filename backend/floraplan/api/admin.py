@@ -112,9 +112,10 @@ def get_settings_(_: User = Depends(require()), db: Session = Depends(get_db)):
 @router.put("/settings")
 def put_settings(values: dict, me: User = Depends(require("director")), db: Session = Depends(get_db)):
     try:
-        appsettings.set_many(db, values)
-    except KeyError as e:
-        raise HTTPException(400, f"Неизвестный параметр {e}")
+        values = appsettings.validate(db, values)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    appsettings.set_many(db, values)
     audit.log(db, me, "Изменены параметры системы", "settings", "", ", ".join(f"{k}={v}" for k, v in values.items()))
     db.commit()
     return appsettings.get_all(db)
@@ -149,7 +150,8 @@ def jobs(request: Request, _: User = Depends(require("analyst", "director"))):
     sched = getattr(request.app.state, "scheduler", None)
     names = {"forecast": "Прогноз спроса", "onec": "Чеки «1С» из папки обмена", "weather": "Погода",
              "shop": "Выгрузка остатков на сайт", "backup": "Резервная копия БД",
-             "anonymize": "Обезличивание данных покупателей (152-ФЗ)"}
+             "anonymize": "Обезличивание данных покупателей (152-ФЗ)",
+             "settings": "Применение часа расчёта прогноза из параметров"}
     if sched is None:
         return {"running": False, "jobs": []}
     return {"running": True, "jobs": [{"id": j.id, "name": names.get(j.id, j.id), "next_run": j.next_run_time}

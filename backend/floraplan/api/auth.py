@@ -20,11 +20,12 @@ class UserOut(BaseModel):
     role: str
     role_name: str
     location_id: int | None
+    active: bool = True
 
 
 def user_out(u: User) -> UserOut:
     return UserOut(id=u.id, login=u.login, full_name=u.full_name, role=u.role, role_name=ROLES.get(u.role, u.role),
-                   location_id=u.location_id)
+                   location_id=u.location_id, active=u.active)
 
 
 class TokenOut(BaseModel):

@@ -65,7 +65,18 @@ cd ../backend && floraplan demo && floraplan run --host 0.0.0.0
 
 ## Резервное копирование и восстановление
 
-Копии создаются автоматически и по кнопке («Администрирование → Резервные копии»), их можно скачать. SQLite — файл `floraplan-*.db`: для восстановления остановите программу и замените `data/floraplan.db`. PostgreSQL — `floraplan-*.dump` (нужен `pg_dump` в PATH): `pg_restore -c -d flora_db floraplan-....dump`.
+Копии создаются автоматически и по кнопке («Администрирование → Резервные копии»), их можно скачать: SQLite — файл `floraplan-*.db`, PostgreSQL — `floraplan-*.dump` (нужен `pg_dump` в PATH; в Docker-образе он есть).
+
+Восстановление (Н-1) — командой `floraplan restore <имя копии или путь к файлу>`. Перед заменой программа сохраняет текущее состояние копией `floraplan-…-before-restore` (восстановление можно откатить той же командой), проверяет файл копии и после замены обновляет схему БД до текущей версии. На время восстановления остановите программу и планировщик:
+
+```
+# Windows
+ФлораПлан.exe restore floraplan-20261024-020000.db
+# Docker
+docker compose stop api scheduler
+docker compose run --rm api floraplan restore floraplan-20261024-020000.dump --yes
+docker compose start api scheduler
+```
 
 ## Обновление
 

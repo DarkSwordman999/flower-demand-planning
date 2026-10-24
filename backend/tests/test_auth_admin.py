@@ -1,3 +1,9 @@
+import os
+import shutil
+
+import pytest
+
+from floraplan.models import User
 from floraplan.security import hash_password, verify_password
 
 
@@ -82,6 +88,36 @@ def test_backup_sqlite(client, login):
     assert f.status_code == 200 and f.content[:15] == b"SQLite format 3"
     assert client.get("/api/admin/backups/..%2Fsecret", headers=h).status_code == 404
     assert client.get("/api/admin/jobs", headers=login("director")).json() == {"running": False, "jobs": []}
+
+
+PG = bool(os.environ.get("FLORAPLAN_TEST_DATABASE_URL"))
+
+
+@pytest.mark.skipif(PG and not shutil.which("pg_restore"), reason="нет pg_dump/pg_restore")
+def test_restore(session, tmp_path):
+    """Н-1: восстановление из копии возвращает данные на момент копии; текущее состояние сохраняется."""
+    from floraplan import db
+    from floraplan.cli import main as cli
+    from floraplan.errors import DomainError
+    from floraplan.services import backup
+    copy = backup.make()
+    with db.session() as s:
+        s.add(User(login="after_copy", full_name="x", role="florist", password_hash="x"))
+        s.commit()
+    cli(["restore", copy.name, "--yes"])
+    with db.session() as s:
+        assert s.query(User).filter_by(login="after_copy").first() is None
+        assert s.query(User).filter_by(login="buyer").one()
+    safety = next(b for b in backup.listing() if "before-restore" in b["name"])
+    backup.restore(backup.path_of(safety["name"]))         # откат восстановления
+    with db.session() as s:
+        assert s.query(User).filter_by(login="after_copy").one()
+    bad = tmp_path / ("not.dump" if PG else "not.db")
+    bad.write_bytes(b"not a database")
+    with pytest.raises(DomainError):
+        backup.restore(bad)
+    with pytest.raises(SystemExit):
+        cli(["restore", "нет-такой-копии.db", "--yes"])
 
 
 def test_scheduler_jobs_run(session):

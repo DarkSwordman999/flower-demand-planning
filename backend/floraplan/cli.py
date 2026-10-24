@@ -75,6 +75,29 @@ def cmd_backup(args) -> None:
     print("резервная копия:", backup.make())
 
 
+def cmd_restore(args) -> None:
+    from .errors import DomainError
+    from .services import backup
+    try:
+        src = backup.resolve(args.file)
+    except DomainError as e:
+        sys.exit(str(e))
+    print(f"Восстановление БД {_safe_url()} из копии {src}.")
+    print("Все изменения после создания копии будут потеряны. Программа и планировщик должны быть остановлены.")
+    if not args.yes:
+        try:
+            ans = input("Продолжить? [д/Н]: ").strip().lower()
+        except EOFError:
+            ans = ""
+        if ans not in ("д", "да", "y", "yes"):
+            sys.exit("отменено")
+    try:
+        safety = backup.restore(src)
+    except DomainError as e:
+        sys.exit(f"ошибка: {e}")
+    print("БД восстановлена. Состояние до восстановления сохранено в", safety)
+
+
 def cmd_forecast(args) -> None:
     from . import db
     from .services import forecasting
@@ -117,6 +140,10 @@ def main(argv: list[str] | None = None) -> None:
     a.set_defaults(func=cmd_demo)
     sub.add_parser("scheduler", help="планировщик задач отдельным процессом").set_defaults(func=cmd_scheduler)
     sub.add_parser("backup", help="резервная копия БД").set_defaults(func=cmd_backup)
+    a = sub.add_parser("restore", help="восстановить БД из резервной копии")
+    a.add_argument("file", help="имя копии из папки backup или путь к файлу")
+    a.add_argument("--yes", action="store_true", help="не спрашивать подтверждение")
+    a.set_defaults(func=cmd_restore)
     sub.add_parser("forecast", help="рассчитать прогноз спроса").set_defaults(func=cmd_forecast)
 
     args = p.parse_args(argv)

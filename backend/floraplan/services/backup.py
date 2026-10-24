@@ -33,8 +33,18 @@ def _pg(tool: str, url: str, args: list[str]) -> None:
     cmd = [exe, "-h", u.hostname or "localhost", "-p", str(u.port or 5432), "-U", unquote(u.username or ""),
            "-d", u.path.lstrip("/"), *args]
     r = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=4 * 3600)   # Н-1: не более 4 часов
-    if r.returncode != 0:
+    if r.returncode != 0 and not _only_newer_client_settings(r.stderr):
         raise DomainError(f"{tool}: {r.stderr.strip()[:500]}")
+
+
+# параметры, которые pg_restore новее сервера выставляет перед восстановлением (PostgreSQL 17+);
+# сервер старшей версии их не знает, pg_restore пропускает ошибку и восстанавливает данные полностью
+_NEWER_SETTINGS = ("transaction_timeout",)
+
+
+def _only_newer_client_settings(stderr: str) -> bool:
+    errors = [ln for ln in stderr.splitlines() if ": error:" in ln]
+    return bool(errors) and all(any(p in ln for p in _NEWER_SETTINGS) for ln in errors)
 
 
 def make(suffix: str = "") -> Path:

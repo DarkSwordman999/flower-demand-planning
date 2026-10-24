@@ -120,3 +120,47 @@ def test_past_delivery_date_rejected(client, session):
     ref = reference(session)
     _stock(session, ref)
     assert client.post("/api/shop/orders", headers=KEY, json=_order("W-6", 1, days=-1)).status_code == 400
+
+
+# ---------------------------------------------------------------- каналы продаж (Р-4)
+def test_sales_channel_marketplace(client, login, session):
+    """Маркетплейс подключается без изменения кода: свой ключ, место хранения, цены и номера заказов."""
+    ref = reference(session)
+    u = session.query(User).filter_by(login="storekeeper").one()
+    salon_batch = inv.create_batch(session, ref.rose, ref.salon.id, 15, 60, T, T + timedelta(days=7), u)
+    _stock(session, ref)                                   # 30 шт. в интернет-магазине
+    admin = login("admin")
+    body = {"code": "ozon", "name": "Ozon", "location_id": ref.salon.id, "price_factor": 1.2}
+    assert client.post("/api/admin/channels", headers=login("director"), json=body).status_code == 403
+    assert client.post("/api/admin/channels", headers=admin, json=dict(body, code="Озон!")).status_code == 400
+    ch = client.post("/api/admin/channels", headers=admin, json=body).json()
+    key = {"X-API-Key": ch["api_key"]}
+    assert "api_key" not in client.get("/api/admin/channels", headers=admin).json()[0]
+    assert client.post("/api/admin/channels", headers=admin, json=body).status_code == 409
+
+    st = client.get("/api/shop/stock", headers=key).json()
+    assert st["location"] == ref.salon.name
+    assert next(x for x in st["items"] if x["product_id"] == ref.rose.id)["available"] == 15
+    pr = client.get("/api/shop/prices", headers=key).json()
+    assert next(x for x in pr["items"] if x["product_id"] == ref.rose.id)["price"] == 180
+
+    r = client.post("/api/shop/orders", headers=key, json=_order("77", 5)).json()
+    assert r["created"] and r["total"] == 900 and r["status"] == "reserved"
+    site_order = client.post("/api/shop/orders", headers=KEY, json=_order("77", 1)).json()
+    assert site_order["created"] and site_order["order_id"] != r["order_id"]     # номера площадок не пересекаются
+    assert client.post("/api/shop/orders", headers=key, json=_order("77", 5)).json()["created"] is False
+    o = session.get(OnlineOrder, r["order_id"])
+    assert (o.external_id, o.location_id, o.channel_id) == ("ozon:77", ref.salon.id, ch["id"])
+    session.expire_all()
+    assert session.get(Batch, salon_batch.id).reserved == 5
+    assert client.get("/api/shop/orders/77", headers=key).json()["order_id"] == r["order_id"]
+    rows = client.get("/api/online-orders", headers=login("shop_manager")).json()
+    assert {x["channel"] for x in rows} == {"Ozon", "Интернет-магазин"}
+
+    # код канала с заказами не меняется; новый ключ отменяет старый; отключённый канал не принимается
+    assert client.put(f"/api/admin/channels/{ch['id']}", headers=admin, json=dict(body, code="wb")).status_code == 400
+    new = client.post(f"/api/admin/channels/{ch['id']}/key", headers=admin).json()["api_key"]
+    assert client.get("/api/shop/stock", headers=key).status_code == 401
+    assert client.get("/api/shop/stock", headers={"X-API-Key": new}).status_code == 200
+    client.put(f"/api/admin/channels/{ch['id']}", headers=admin, json=dict(body, active=False))
+    assert client.get("/api/shop/stock", headers={"X-API-Key": new}).status_code == 401

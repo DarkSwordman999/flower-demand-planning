@@ -69,6 +69,7 @@ export default function OnlineOrders() {
         }}
         columns={[
           { title: "Номер", dataIndex: "external_id" },
+          { title: "Канал", dataIndex: "channel" },
           { title: "Создан", dataIndex: "created_at", render: dt },
           { title: "Доставка", dataIndex: "delivery_date", render: d },
           { title: "Покупатель", dataIndex: "customer_name" },

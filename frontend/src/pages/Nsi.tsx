@@ -309,7 +309,9 @@ function Groups() {
 }
 
 function Events() {
+  const { can } = useAuth();
   const groups = useRefs("groups");
+  const { run } = useAction();
   return (
     <Crud
       url="/api/nsi/events"
@@ -330,11 +332,13 @@ function Events() {
         { name: "coefficient", label: "Коэффициент спроса (пусто — оценить по истории)", input: <InputNumber min={0.1} max={50} step={0.1} /> },
         { name: "group_id", label: "Только для группы (акция)", input: <Select allowClear options={groups.map((g) => ({ value: g.id, label: g.name }))} /> },
       ]}
-      extra={(r, reload) => (
-        <Popconfirm title="Удалить событие?" onConfirm={async () => (await api.del(`/api/nsi/events/${r.id}`), reload())}>
-          <Button size="small" danger icon={<DeleteOutlined />} />
-        </Popconfirm>
-      )}
+      extra={(r, reload) =>
+        can("buyer", "analyst") && (
+          <Popconfirm title="Удалить событие?" onConfirm={async () => (await run(() => api.del(`/api/nsi/events/${r.id}`), "Событие удалено")) && reload()}>
+            <Button size="small" danger icon={<DeleteOutlined />} />
+          </Popconfirm>
+        )
+      }
     />
   );
 }

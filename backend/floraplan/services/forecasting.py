@@ -15,7 +15,7 @@ import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime, timedelta
 
 import numpy as np
@@ -218,11 +218,32 @@ def forecast_group(job: GroupJob) -> tuple[list[dict], dict]:
     return rows, dict(used)
 
 
-def _workers(n_jobs: int) -> int:
-    """Число процессов: FLORAPLAN_FORECAST_WORKERS, но не больше числа групп. 0 — половина логических
-    процессоров (≈ число физических ядер: на гиперпоточных ядрах расчёт не ускоряется, а мешает)."""
-    w = get_settings().forecast_workers or max(1, (os.cpu_count() or 1) // 2)
-    return max(1, min(w, n_jobs))
+SERIES_PER_WORKER = 100
+
+
+def _workers(n_series: int) -> int:
+    """Число процессов: FLORAPLAN_FORECAST_WORKERS (но не больше числа рядов). 0 — автоматически: половина
+    логических процессоров (≈ число физических ядер: на гиперпоточных ядрах расчёт не ускоряется), но не меньше
+    SERIES_PER_WORKER рядов на процесс — запуск процесса в Windows стоит несколько секунд (загрузка numpy,
+    scipy, statsmodels), и на малом числе рядов параллельный расчёт медленнее последовательного."""
+    w = get_settings().forecast_workers
+    if not w:
+        w = min(max(1, (os.cpu_count() or 1) // 2), n_series // SERIES_PER_WORKER)
+    return max(1, min(w, n_series))
+
+
+def _split(jobs: list[GroupJob], workers: int) -> list[GroupJob]:
+    """Крупные группы (розы — треть всех рядов) делятся на части: иначе один процесс считает самую большую
+    группу, пока остальные простаивают. Ряды независимы, поэтому прогноз от деления не меняется."""
+    if workers <= 1:
+        return jobs
+    total = sum(len(j.series) for j in jobs)
+    size = max(1, math.ceil(total / (workers * 4)))      # ~4 части на процесс — ровная загрузка
+    out = []
+    for j in sorted(jobs, key=lambda j: -len(j.series)):  # крупные — первыми
+        for i in range(0, len(j.series), size):
+            out.append(replace(j, series=j.series[i:i + size]))
+    return out
 
 
 def _map(fn, jobs: list, workers: int):
@@ -261,8 +282,9 @@ def compute(db: Session, base: date, h: int, model: ForecastModel, history_days:
             continue          # давно не продавался — прогноз не строится
         jobs[data.group_of[pid]].series.append((pid, lid, y_raw, data.stockout[(pid, lid)]))
     jobs = [j for j in jobs.values() if j.series]
+    workers = _workers(sum(len(j.series) for j in jobs))
+    jobs = _split(jobs, workers)
     rows, used = [], defaultdict(int)
-    workers = _workers(len(jobs))
     for part_rows, part_used in _map(forecast_group, jobs, workers):
         rows.extend(part_rows)
         for k, v in part_used.items():

@@ -4,12 +4,13 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import dayjs from "dayjs";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { useLoad } from "../hooks";
+import { useLoad, useSettings } from "../hooks";
 import { d, money, num } from "../format";
 
 export default function Dashboard() {
   const { user, can } = useAuth();
   const { data, loading } = useLoad(() => api.get("/api/dashboard"));
+  const st = useSettings();
   if (loading && !data) return <Spin />;
   if (!data) return null;
 
@@ -49,7 +50,7 @@ export default function Dashboard() {
         {kpi("Продажи за 7 дней, руб.", money(data.sales_week), "/reports")}
         {kpi("Списания за 30 дней", num(data.writeoff_share_pct), "/reports", "% закупок", (data.writeoff_share_pct ?? 0) > 10)}
         {kpi("WAPE прогноза (4 недели)", num(data.forecast_wape_pct), "/reports", "%", (data.forecast_wape_pct ?? 0) > 25)}
-        {kpi("Партии со сроком ≤ 2 дней", data.expiring_batches, "/expiry")}
+        {kpi(`Партии со сроком ≤ ${st.expiring_days} дн.`, data.expiring_batches, "/expiry")}
         {kpi("Рекомендуется уценить", data.markdown_needed, "/expiry", undefined, data.markdown_needed > 0)}
         {kpi("Просрочено (к списанию)", data.expired_batches, "/expiry", undefined, data.expired_batches > 0)}
         {kpi("Дней дефицита за неделю", data.stockouts_week, "/stock")}

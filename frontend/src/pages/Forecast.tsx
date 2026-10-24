@@ -4,7 +4,7 @@ import { CartesianGrid, ComposedChart, Area, Legend, Line, ResponsiveContainer, 
 import dayjs from "dayjs";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { useAction, useLoad, useRefs } from "../hooks";
+import { useAction, useLoad, useRefs, useSettings } from "../hooks";
 import { ALGORITHMS, d, dt, num, pct } from "../format";
 
 export default function Forecast() {
@@ -104,6 +104,7 @@ function Chart({ product, setProduct }: { product?: number; setProduct: (v?: num
 
 function Horizon({ onPick }: { onPick: (id: number) => void }) {
   const groups = useRefs("groups");
+  const horizon = useSettings().forecast_horizon;
   const [group, setGroup] = useState<number | undefined>();
   const { data, loading } = useLoad<any>(() => api.get("/api/forecast/table", { group_id: group }), [group]);
   return (
@@ -123,7 +124,7 @@ function Horizon({ onPick }: { onPick: (id: number) => void }) {
           { title: "Товар", dataIndex: "product" },
           { title: "Группа", dataIndex: "group" },
           { title: "7 дней, P50", dataIndex: "week_p50", align: "right", render: (v) => num(v) },
-          { title: "14 дней, P50", dataIndex: "p50", align: "right", render: (v) => num(v) },
+          { title: `${horizon} дн., P50`, dataIndex: "p50", align: "right", render: (v) => num(v) },
           { title: "P80", dataIndex: "p80", align: "right", render: (v) => num(v) },
           { title: "P95", dataIndex: "p95", align: "right", render: (v) => num(v) },
           { title: "Модель", dataIndex: "algorithm" },
@@ -147,9 +148,13 @@ function Models() {
     if (m) {
       reload();
       Modal.info({
-        title: `Версия ${m.version}: WAPE ${pct(m.wape * 100)}`,
-        content: `Действующая версия на том же периоде: ${pct(m.details.published.wape * 100)}. ${
-          m.wape <= m.details.published.wape ? "Новую версию можно опубликовать." : "Новая версия хуже — публикация будет отклонена."
+        title: `Версия ${m.version}: WAPE ${pct(share(m.wape))}`,
+        content: `Действующая версия на том же периоде: ${pct(share(m.details.published.wape))}. ${
+          m.wape === null
+            ? "Оценить версию не удалось: нет продаж на отложенном периоде."
+            : m.details.published.wape === null || m.wape <= m.details.published.wape
+              ? "Новую версию можно опубликовать."
+              : "Новая версия хуже — публикация будет отклонена."
         }`,
       });
     }
@@ -204,7 +209,7 @@ function Models() {
               <Descriptions size="small" column={1} bordered>
                 {Object.entries(m.details.candidate.groups).map(([g, v]: any) => (
                   <Descriptions.Item key={g} label={gname(g)}>
-                    WAPE {pct(v.wape !== null ? v.wape * 100 : null)} · факт {num(v.actual)} · прогноз {num(v.forecast)}
+                    WAPE {pct(share(v.wape))} · факт {num(v.actual)} · прогноз {num(v.forecast)}
                   </Descriptions.Item>
                 ))}
               </Descriptions>
@@ -213,8 +218,8 @@ function Models() {
           columns={[
             { title: "Версия", dataIndex: "version", width: 80 },
             { title: "Алгоритм", dataIndex: "algorithm_name" },
-            { title: "WAPE", dataIndex: "wape", align: "right", render: (v) => pct(v !== null ? v * 100 : null) },
-            { title: "Смещение", dataIndex: "bias", align: "right", render: (v) => pct(v !== null ? v * 100 : null) },
+            { title: "WAPE", dataIndex: "wape", align: "right", render: (v) => pct(share(v)) },
+            { title: "Смещение", dataIndex: "bias", align: "right", render: (v) => pct(share(v)) },
             {
               title: "Статус",
               dataIndex: "status",
@@ -238,6 +243,9 @@ function Models() {
     </Row>
   );
 }
+
+/** Доля (0,123) → проценты (12,3); не рассчитано — null. */
+const share = (v?: number | null) => (v === null || v === undefined ? null : v * 100);
 
 function Weather() {
   const { can } = useAuth();

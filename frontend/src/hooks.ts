@@ -68,4 +68,27 @@ export function useRefs(kind: "products" | "locations" | "groups" | "suppliers" 
 export function refreshRefs(kind?: string) {
   if (kind) delete cache[kind];
   else Object.keys(cache).forEach((k) => delete cache[k]);
+  if (!kind || kind === "settings") settingsCache = undefined;
+}
+
+/** Параметры системы (пороги уценки, срок «истекает», горизонт прогноза…) — как их задал директор. */
+export interface SystemSettings {
+  expiring_days: number;
+  markdown_min: number;
+  markdown_max: number;
+  change_reason_pct: number;
+  forecast_horizon: number;
+  [k: string]: any;
+}
+
+const SETTINGS_DEFAULTS: SystemSettings = { expiring_days: 2, markdown_min: 10, markdown_max: 50, change_reason_pct: 30, forecast_horizon: 14 };
+let settingsCache: Promise<SystemSettings> | undefined;
+
+export function useSettings(): SystemSettings {
+  const [s, setS] = useState<SystemSettings>(SETTINGS_DEFAULTS);
+  useEffect(() => {
+    if (!settingsCache) settingsCache = api.get<SystemSettings>("/api/admin/settings").catch(() => SETTINGS_DEFAULTS);
+    settingsCache.then((v) => setS({ ...SETTINGS_DEFAULTS, ...v }));
+  }, []);
+  return s;
 }

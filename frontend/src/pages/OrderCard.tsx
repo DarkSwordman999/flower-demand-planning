@@ -4,7 +4,7 @@ import { Alert, Button, Card, Descriptions, Input, InputNumber, Modal, Popconfir
 import { DownloadOutlined } from "@ant-design/icons";
 import { api, download } from "../api";
 import { useAuth } from "../auth";
-import { useAction, useLoad } from "../hooks";
+import { useAction, useLoad, useSettings } from "../hooks";
 import { d, dt, money, num, ORDER_COLORS } from "../format";
 import { CalcPopover } from "./Purchasing";
 
@@ -26,7 +26,7 @@ export default function OrderCard() {
   const [edit, setEdit] = useState<Record<number, { qty: number; reason: string }>>({});
   const { busy, run } = useAction();
   const [comment, setComment] = useState("");
-  const limit = 30;
+  const limit = useSettings().change_reason_pct;
 
   useEffect(() => {
     if (o) setEdit(Object.fromEntries(o.lines.map((l: any) => [l.id, { qty: l.ordered_qty, reason: l.change_reason }])));
@@ -111,7 +111,7 @@ export default function OrderCard() {
             render: (_, l) =>
               draft ? (
                 <Input
-                  placeholder={needReason(l) ? "обязательно: отклонение > 30 %" : ""}
+                  placeholder={needReason(l) ? `обязательно: отклонение > ${limit} %` : ""}
                   status={needReason(l) && !edit[l.id]?.reason ? "error" : undefined}
                   value={edit[l.id]?.reason}
                   onChange={(e) => setEdit((s) => ({ ...s, [l.id]: { ...s[l.id], reason: e.target.value } }))}

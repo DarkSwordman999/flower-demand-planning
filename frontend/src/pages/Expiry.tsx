@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Button, InputNumber, Select, Table, Tabs, Tag, Typography } from "antd";
 import { api } from "../api";
 import { useAuth } from "../auth";
-import { useAction, useLoad, useRefs } from "../hooks";
+import { useAction, useLoad, useRefs, useSettings } from "../hooks";
 import { BATCH_STATES, d, money, num } from "../format";
 import { WriteOffModal } from "./Stock";
 
 export default function Expiry() {
   const { user } = useAuth();
   const locs = useRefs("locations");
+  const st = useSettings();
   const [loc, setLoc] = useState<number | undefined>(user?.location_id ?? undefined);
   return (
     <>
@@ -27,7 +28,7 @@ export default function Expiry() {
       </div>
       <Tabs
         items={[
-          { key: "m", label: "Уценка (срок ≤ 2 дней)", children: <Markdown loc={loc} /> },
+          { key: "m", label: `Уценка (срок ≤ ${st.expiring_days} дн.)`, children: <Markdown loc={loc} /> },
           { key: "e", label: "Срок истёк — к списанию", children: <Expired loc={loc} /> },
         ]}
       />
@@ -37,6 +38,7 @@ export default function Expiry() {
 
 function Markdown({ loc }: { loc?: number }) {
   const { can } = useAuth();
+  const st = useSettings();
   const { data, loading, reload } = useLoad<any[]>(() => api.get("/api/expiry/recommendations", { location_id: loc }), [loc]);
   const [disc, setDisc] = useState<Record<number, number>>({});
   const [sel, setSel] = useState<number[]>([]);
@@ -46,7 +48,7 @@ function Markdown({ loc }: { loc?: number }) {
   const apply = async () => {
     const items = sel.map((id) => {
       const r = (data || []).find((x) => x.id === id);
-      return { batch_id: id, discount_pct: disc[id] ?? r.recommended_discount };
+      return { batch_id: id, discount_pct: disc[id] ?? (r.recommended_discount || st.markdown_min) };
     });
     if (items.some((i) => !i.discount_pct)) return;
     const ok = await run(() => api.post("/api/expiry/markdown", { items }), "Уценка подтверждена — цены уйдут в кассы");
@@ -93,7 +95,7 @@ function Markdown({ loc }: { loc?: number }) {
             width: 120,
             render: (_, r) =>
               r.recommendation === "уценить" || sel.includes(r.id) ? (
-                <InputNumber min={10} max={50} step={5} value={disc[r.id] ?? (r.recommended_discount || 10)} onChange={(v) => setDisc((s) => ({ ...s, [r.id]: Number(v) }))} />
+                <InputNumber min={st.markdown_min} max={st.markdown_max} step={5} value={disc[r.id] ?? (r.recommended_discount || st.markdown_min)} onChange={(v) => setDisc((s) => ({ ...s, [r.id]: Number(v) }))} />
               ) : r.discount_pct ? (
                 `${r.discount_pct}`
               ) : (

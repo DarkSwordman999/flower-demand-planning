@@ -81,12 +81,32 @@ def job_backup(s):
     return f"создана {backup.make().name}"
 
 
-def _add_jobs(sched) -> None:
+def _forecast_hour() -> int:
     with db.session() as s:
-        hour = int(appsettings.get(s, "forecast_hour"))
+        return int(appsettings.get(s, "forecast_hour"))
+
+
+def sync_forecast_hour(sched) -> None:
+    """Час расчёта меняют в «Администрирование → Параметры»: расписание подстраивается без перезапуска
+    (и в отдельном процессе-планировщике, который не знает о запросах к API)."""
+    try:
+        hour = _forecast_hour()
+    except Exception:  # БД недоступна — проверим в следующий раз
+        log.exception("час расчёта прогноза")
+        return
+    job = sched.get_job("forecast")
+    current = next((str(f) for f in getattr(job.trigger, "fields", []) if f.name == "hour"), None) if job else None
+    if job is not None and current != str(hour):
+        job.reschedule(CronTrigger(hour=hour, minute=0, timezone=get_settings().timezone))
+        log.info("расчёт прогноза перенесён на %02d:00", hour)
+
+
+def _add_jobs(sched) -> None:
+    hour = _forecast_hour()
     tz = get_settings().timezone
     sched.add_job(job_forecast, CronTrigger(hour=hour, minute=0, timezone=tz), id="forecast", coalesce=True,
                   misfire_grace_time=6 * 3600)
+    sched.add_job(sync_forecast_hour, IntervalTrigger(minutes=10), args=[sched], id="settings")
     sched.add_job(job_onec, IntervalTrigger(hours=1), id="onec", next_run_time=datetime.now())
     sched.add_job(job_weather, IntervalTrigger(hours=6), id="weather", next_run_time=datetime.now())
     sched.add_job(job_shop_push, IntervalTrigger(minutes=15), id="shop")

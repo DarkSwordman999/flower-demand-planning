@@ -1,4 +1,9 @@
-"""Интернет-магазин (П-11, С-14): остатки и цены для сайта, заказы с резервированием, предзаказы."""
+"""Интернет-магазин (П-11, С-14): остатки и цены для сайта, заказы с резервированием, предзаказы.
+Каналы продаж (Р-4): маркетплейсы и другие сайты работают через тот же API со своим ключом."""
+import hashlib
+import re
+import secrets
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import func
@@ -6,8 +11,47 @@ from sqlalchemy.orm import Session
 
 from .. import appsettings, audit
 from ..errors import Conflict, DomainError, NotFound
-from ..models import Batch, Location, OnlineOrder, OnlineOrderLine, Product, Reservation, User
+from ..models import Batch, Location, OnlineOrder, OnlineOrderLine, Product, Reservation, SalesChannel, User
 from .sales import record_sale
+
+
+@dataclass(frozen=True)
+class Channel:
+    """Кто обращается к API: основной сайт (ключ из настроек) или подключённый канал продаж."""
+    id: int | None
+    code: str
+    name: str
+    location_id: int | None = None      # None — место хранения интернет-магазина
+    price_factor: float = 1.0
+
+    def order_id(self, external_id: str) -> str:
+        """Номер заказа в системе: у каналов — с префиксом кода, чтобы номера разных площадок не совпадали."""
+        return external_id if self.id is None else f"{self.code}:{external_id}"
+
+
+SITE = Channel(None, "site", "Интернет-магазин")
+CODE_RE = re.compile(r"^[a-z0-9_-]{2,30}$")
+
+
+def key_hash(key: str) -> str:
+    return hashlib.sha256(key.encode()).hexdigest()
+
+
+def new_key() -> str:
+    return "ch_" + secrets.token_urlsafe(24)
+
+
+def channel_by_key(db: Session, key: str) -> Channel | None:
+    c = db.query(SalesChannel).filter(SalesChannel.key_hash == key_hash(key), SalesChannel.active.is_(True)).first()
+    return Channel(c.id, c.code, c.name, c.location_id, c.price_factor) if c else None
+
+
+def channel_location(db: Session, ch: Channel) -> Location:
+    return db.get(Location, ch.location_id) if ch.location_id else online_location(db)
+
+
+def channel_price(p: Product, ch: Channel) -> float:
+    return round(p.price * ch.price_factor, 2)
 
 
 def online_location(db: Session) -> Location:
@@ -31,8 +75,8 @@ def free_qty(db: Session, product_id: int, location_id: int, fresh_on: date) -> 
     return max(0.0, float(v))
 
 
-def stock(db: Session) -> dict:
-    loc = online_location(db)
+def stock(db: Session, ch: Channel = SITE) -> dict:
+    loc = channel_location(db, ch)
     today = date.today()
     rows = (db.query(Batch.product_id, func.sum(Batch.qty - Batch.reserved))
             .filter(Batch.location_id == loc.id, Batch.expiry_date >= today).group_by(Batch.product_id).all())
@@ -42,9 +86,9 @@ def stock(db: Session) -> dict:
     return {"updated_at": datetime.now().replace(microsecond=0), "location": loc.name, "items": items}
 
 
-def prices(db: Session) -> dict:
+def prices(db: Session, ch: Channel = SITE) -> dict:
     return {"updated_at": datetime.now().replace(microsecond=0),
-            "items": [{"product_id": p.id, "barcode": p.barcode, "name": p.name, "price": p.price}
+            "items": [{"product_id": p.id, "barcode": p.barcode, "name": p.name, "price": channel_price(p, ch)}
                       for p in db.query(Product).filter(Product.active.is_(True)).order_by(Product.id)]}
 
 
@@ -71,13 +115,15 @@ def shortage(db: Session, order_lines: list[tuple[Product, float]], location_id:
 
 
 def create_order(db: Session, external_id: str, delivery_date: date, lines: list[dict], customer_name: str = "",
-                 phone: str = "", comment: str = "", allow_preorder: bool = True) -> tuple[OnlineOrder, bool]:
+                 phone: str = "", comment: str = "", allow_preorder: bool = True,
+                 ch: Channel = SITE) -> tuple[OnlineOrder, bool]:
+    external_id = ch.order_id(external_id)
     old = db.query(OnlineOrder).filter(OnlineOrder.external_id == external_id).first()
     if old is not None:
         return old, False
     if delivery_date < date.today():
         raise DomainError("Дата доставки уже прошла")
-    loc = online_location(db)
+    loc = channel_location(db, ch)
     resolved = []
     for ln in lines:
         p = (db.get(Product, int(ln["product_id"])) if ln.get("product_id")
@@ -92,20 +138,20 @@ def create_order(db: Session, external_id: str, delivery_date: date, lines: list
     short = shortage(db, resolved, loc.id, delivery_date)
     if short and not allow_preorder:
         raise Conflict("Недостаточно товара для заказа", data={"shortage": short})
-    order = OnlineOrder(external_id=external_id, delivery_date=delivery_date, location_id=loc.id,
+    order = OnlineOrder(external_id=external_id, channel_id=ch.id, delivery_date=delivery_date, location_id=loc.id,
                         customer_name=customer_name, phone=phone, comment=comment, status="new")
     db.add(order)
     db.flush()
     for p, q in resolved:
-        db.add(OnlineOrderLine(order_id=order.id, product_id=p.id, qty=q, price=p.price))
-    order.total = round(sum(p.price * q for p, q in resolved), 2)
+        db.add(OnlineOrderLine(order_id=order.id, product_id=p.id, qty=q, price=channel_price(p, ch)))
+    order.total = round(sum(channel_price(p, ch) * q for p, q in resolved), 2)
     db.flush()
     db.refresh(order)
     if short:
         order.status = "preorder"   # товар ещё не поступил: резерв — по приходе (С-14, предзаказ)
     else:
         _reserve(db, order)
-    audit.integration(db, "shop", f"заказ {external_id}: {order.status}, сумма {order.total}")
+    audit.integration(db, "shop", f"{ch.name}: заказ {external_id}: {order.status}, сумма {order.total}")
     db.flush()
     return order, True
 

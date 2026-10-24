@@ -363,10 +363,27 @@ class DailySales(Base):
     revenue: Mapped[float] = mapped_column(Float, default=0)
 
 
+class SalesChannel(Base):
+    """Канал продаж (Р-4): маркетплейс или другой сайт, подключённый через API интернет-магазина
+    со своим ключом, местом хранения (остатки и резерв) и коэффициентом цены."""
+    __tablename__ = "sales_channels"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(30), unique=True)        # префикс номеров заказов канала
+    name: Mapped[str] = mapped_column(String(100))
+    key_hash: Mapped[str] = mapped_column(String(64), unique=True)    # SHA-256 ключа API; сам ключ не хранится
+    location_id: Mapped[int] = mapped_column(ForeignKey("locations.id"))
+    price_factor: Mapped[float] = mapped_column(Float, default=1.0)   # цена канала = розничная × коэффициент
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
+    location: Mapped["Location"] = relationship()
+
+
 class OnlineOrder(Base):
     __tablename__ = "online_orders"
     id: Mapped[int] = mapped_column(primary_key=True)
-    external_id: Mapped[str] = mapped_column(String(100), unique=True)
+    external_id: Mapped[str] = mapped_column(String(100), unique=True)   # у каналов — «код:номер»
+    channel_id: Mapped[int | None] = mapped_column(ForeignKey("sales_channels.id"), nullable=True)
+    channel: Mapped[SalesChannel | None] = relationship()
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_now)
     customer_name: Mapped[str] = mapped_column(String(200), default="")
     phone: Mapped[str] = mapped_column(String(50), default="")      # персональные данные (152-ФЗ)

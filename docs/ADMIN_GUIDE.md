@@ -11,7 +11,7 @@
 ```bash
 git clone https://github.com/DarkSwordman999/flower-demand-planning.git
 cd flower-demand-planning/deploy
-cp .env.example .env        # задайте DB_PASSWORD, SECRET_KEY, ADMIN_PASSWORD, почту
+cp .env.example .env        # задайте DB_PASSWORD, ADMIN_PASSWORD, почту
 docker compose up -d --build
 docker compose exec api floraplan demo     # при необходимости — демо-данные
 ```
@@ -34,7 +34,7 @@ cd ../backend && floraplan demo && floraplan run --host 0.0.0.0
 |---|---|
 | `DATABASE_URL` | `postgresql+psycopg://user:pass@host:5432/flora_db`; пусто — SQLite в `DATA_DIR` |
 | `DATA_DIR` | каталог данных: БД SQLite, `backup`, `outbox`, `inbox_1c` |
-| `SECRET_KEY` | ключ подписи токенов входа — обязательно смените |
+| `SECRET_KEY` | ключ подписи токенов входа; не задан — при первом запуске создаётся случайный и хранится в `DATA_DIR/secret.key` (файл не передавайте посторонним: с ним можно подделать вход) |
 | `TOKEN_HOURS` | срок действия входа, часов (12) |
 | `SHOP_API_KEY`, `ONEC_API_KEY` | ключи интернет-магазина и «1С» (заголовок `X-API-Key`) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_TLS` | почта для заказов поставщикам |

@@ -35,7 +35,7 @@ def verify_password(password: str, stored: str) -> bool:
 def make_token(user: User) -> str:
     s = get_settings()
     exp = datetime.now(timezone.utc) + timedelta(hours=s.token_hours)
-    return jwt.encode({"sub": str(user.id), "role": user.role, "exp": exp}, s.secret_key, algorithm="HS256")
+    return jwt.encode({"sub": str(user.id), "role": user.role, "exp": exp}, s.token_secret, algorithm="HS256")
 
 
 def current_user(token: str | None = Depends(oauth2)) -> User:
@@ -43,7 +43,7 @@ def current_user(token: str | None = Depends(oauth2)) -> User:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Требуется вход в систему",
                             headers={"WWW-Authenticate": "Bearer"})
     try:
-        payload = jwt.decode(token, get_settings().secret_key, algorithms=["HS256"])
+        payload = jwt.decode(token, get_settings().token_secret, algorithms=["HS256"])
     except jwt.PyJWTError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Сеанс истёк, войдите снова",
                             headers={"WWW-Authenticate": "Bearer"})

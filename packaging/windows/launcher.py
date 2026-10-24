@@ -50,16 +50,19 @@ def main() -> None:
     cli(["init-db"])
     if _ask_demo():
         cli(["demo"])
-    port = int(os.environ.get("FLORAPLAN_PORT", "8000"))
+    from floraplan.config import get_settings
+    st = get_settings()               # переменные окружения или .env рядом с программой
+    port = st.port
     while not _port_free(port):
         port += 1
-    url = f"http://127.0.0.1:{port}/"
+    ssl = st.ssl                      # HTTPS: FLORAPLAN_SSL_CERTFILE и FLORAPLAN_SSL_KEYFILE
+    url = f"{'https' if ssl else 'http'}://127.0.0.1:{port}/"
     print(f"\nФлораПлан работает: {url}\nНе закрывайте это окно, пока работаете с программой.\n")
-    if not os.environ.get("FLORAPLAN_NO_BROWSER"):
+    if not st.no_browser:
         threading.Thread(target=lambda: (time.sleep(2), webbrowser.open(url)), daemon=True).start()
     import uvicorn
     from floraplan.main import app
-    uvicorn.run(app, host=os.environ.get("FLORAPLAN_HOST", "127.0.0.1"), port=port, log_level="warning")
+    uvicorn.run(app, host=st.host, port=port, log_level="warning", **ssl)
 
 
 if __name__ == "__main__":

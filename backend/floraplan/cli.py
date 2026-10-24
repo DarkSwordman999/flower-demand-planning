@@ -15,9 +15,11 @@ def cmd_init_db(args) -> None:
 
 def cmd_run(args) -> None:
     import uvicorn
+    from .config import get_settings
     cmd_init_db(argparse.Namespace(admin_password="admin"))
-    print(f"ФлораПлан: http://{args.host}:{args.port}/   (API: /api/docs)")
-    uvicorn.run("floraplan.main:app", host=args.host, port=args.port, log_level="info")
+    ssl = get_settings().ssl
+    print(f"ФлораПлан: {'https' if ssl else 'http'}://{args.host}:{args.port}/   (API: /api/docs)")
+    uvicorn.run("floraplan.main:app", host=args.host, port=args.port, log_level="info", **ssl)
 
 
 def cmd_create_user(args) -> None:

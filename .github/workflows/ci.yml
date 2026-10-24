@@ -96,3 +96,13 @@ jobs:
           for i in $(seq 1 60); do curl -fs http://localhost:8080/api/health && exit 0; sleep 3; done
           docker compose -f deploy/docker-compose.yml logs
           exit 1
+      - name: HTTPS через прокси Caddy (Б-1)
+        env:
+          DB_PASSWORD: ci
+          SECRET_KEY: ci
+          DOMAIN: localhost
+        run: |
+          docker compose -f deploy/docker-compose.yml --profile https up -d
+          for i in $(seq 1 40); do curl -fsk https://localhost/api/health && exit 0; sleep 3; done
+          docker compose -f deploy/docker-compose.yml --profile https logs proxy
+          exit 1

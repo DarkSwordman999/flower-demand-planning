@@ -3,6 +3,7 @@
 #   обмен с «1С», погода, резервные копии.
 # Запуск:  cp .env.example .env  (задать пароли)  &&  docker compose up -d
 # Демо-данные:  docker compose exec api floraplan demo
+# HTTPS (Б-1):  задать DOMAIN в .env  &&  docker compose --profile https up -d   (прокси Caddy, порты 80 и 443)
 name: floraplan
 
 services:
@@ -65,6 +66,21 @@ services:
     ports:
       - "${HTTP_PORT:-8080}:80"
 
+  proxy:
+    image: caddy:2.8-alpine
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on: [web]
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+
 volumes:
   pgdata:
   floradata:
+  caddydata:

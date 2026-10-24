@@ -39,6 +39,8 @@
 ------------------------------------------------------------------
   FLORAPLAN_PORT=8000                 порт веб-интерфейса
   FLORAPLAN_HOST=0.0.0.0              доступ с других компьютеров сети и ТСД
+  FLORAPLAN_SSL_CERTFILE=cert.pem     HTTPS: сертификат и закрытый ключ в формате PEM
+  FLORAPLAN_SSL_KEYFILE=key.pem
   FLORAPLAN_DATABASE_URL=postgresql+psycopg://user:pass@host:5432/flora_db   работа с PostgreSQL
   FLORAPLAN_SMTP_HOST, _PORT, _USER, _PASSWORD, _FROM   почта для заказов поставщикам
   FLORAPLAN_SHOP_API_KEY, FLORAPLAN_ONEC_API_KEY        ключи интернет-магазина и «1С»

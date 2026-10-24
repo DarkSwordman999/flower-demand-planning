@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Alert, Button, Card, Checkbox, Empty, Input, InputNumber, List, Result, Space, Table, Tabs, Tag, Typography } from "antd";
+import { Alert, App, Button, Card, Checkbox, Empty, Input, InputNumber, List, Result, Space, Table, Tabs, Tag, Typography } from "antd";
 import { BarcodeOutlined, DownloadOutlined, PrinterOutlined } from "@ant-design/icons";
 import { api, download, openHtml } from "../api";
 import { useAction, useLoad } from "../hooks";
@@ -33,6 +33,7 @@ function ToReceive() {
   const { data, loading, reload } = useLoad<any[]>(() => api.get("/api/receiving/orders"));
   const [order, setOrder] = useState<any>(null);
   const [done, setDone] = useState<any>(null);
+  const { message } = App.useApp();
 
   if (done)
     return (
@@ -46,7 +47,7 @@ function ToReceive() {
         extra={
           <Space wrap>
             {done.batches.length > 0 && (
-              <Button icon={<PrinterOutlined />} type="primary" onClick={() => openHtml("/api/receiving/labels", { batch_ids: done.batches })}>
+              <Button icon={<PrinterOutlined />} type="primary" onClick={() => openHtml("/api/receiving/labels", { batch_ids: done.batches }).catch((e) => message.error(e.message))}>
                 Этикетки партий
               </Button>
             )}

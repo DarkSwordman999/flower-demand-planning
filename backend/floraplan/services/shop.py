@@ -167,6 +167,23 @@ def reserve_preorder(db: Session, order: OnlineOrder, user: User) -> OnlineOrder
     return order
 
 
+def reserve_waiting(db: Session, location_id: int, user: User | None = None) -> list[str]:
+    """С-14: товар поступил в место хранения (приёмка, перемещение) — предзаказы этого места, которые теперь
+    можно собрать, резервируются сами; первыми — с ближайшей датой доставки. Возвращает номера заказов."""
+    done = []
+    waiting = (db.query(OnlineOrder).filter(OnlineOrder.status == "preorder", OnlineOrder.location_id == location_id,
+                                            OnlineOrder.delivery_date >= date.today())
+               .order_by(OnlineOrder.delivery_date, OnlineOrder.id).all())
+    for o in waiting:
+        if shortage(db, [(ln.product, ln.qty) for ln in o.lines], o.location_id, o.delivery_date):
+            continue
+        _reserve(db, o)
+        db.flush()
+        audit.log(db, user, "Резерв под предзаказ при поступлении товара", "online_order", o.id, o.external_id)
+        done.append(o.external_id)
+    return done
+
+
 def _release(db: Session, order: OnlineOrder) -> None:
     for ln in order.lines:
         for r in db.query(Reservation).filter(Reservation.line_id == ln.id).all():

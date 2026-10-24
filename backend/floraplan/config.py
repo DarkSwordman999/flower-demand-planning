@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     # адрес сайта для активной выгрузки остатков и цен каждые 15 минут (С-14); пусто — сайт сам опрашивает API
     shop_webhook_url: str = ""
 
+    # процессов для расчёта прогноза по товарным группам (Р-1); 0 — по числу физических ядер, 1 — в одном процессе
+    forecast_workers: int = 0
+
     scheduler_enabled: bool = True
     timezone: str = "Europe/Moscow"
     cors_origins: str = ""

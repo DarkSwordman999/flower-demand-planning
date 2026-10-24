@@ -38,6 +38,7 @@ cd ../backend && floraplan demo && floraplan run --host 0.0.0.0
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_TLS` | почта для заказов поставщикам |
 | `SHOP_WEBHOOK_URL` | адрес сайта для выгрузки остатков и цен каждые 15 минут |
 | `WEATHER_ENABLED`, `LATITUDE`, `LONGITUDE` | погодный сервис Open-Meteo (по умолчанию — Тула) |
+| `FORECAST_WORKERS` | процессов для расчёта прогноза: товарные группы считаются параллельно; `0` — по числу физических ядер (по умолчанию), `1` — в одном процессе |
 | `SCHEDULER_ENABLED` | планировщик внутри веб-сервера (в Docker — `false`, работает сервис `scheduler`) |
 | `TIMEZONE` | часовой пояс расписания (`Europe/Moscow`) |
 

@@ -7,9 +7,14 @@
 4. Прогноз умножается на коэффициенты будущих событий и поправку на погоду; P80/P95 —
    по распределению ошибок на отложенном периоде.
 """
+import logging
 import math
+import multiprocessing
+import os
 import time
 from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
@@ -18,6 +23,7 @@ from sqlalchemy import delete, insert
 from sqlalchemy.orm import Session
 
 from .. import appsettings, audit
+from ..config import get_settings
 from ..errors import DomainError
 from ..models import (CalendarEvent, DailySales, Forecast, ForecastModel, ForecastRun, Location, Product,
                       StockoutDay, Weather)
@@ -25,6 +31,7 @@ from . import tsmodels as tm
 from . import weather as wx
 
 SALE_LOCATIONS = ("salon", "online")
+log = logging.getLogger("floraplan.forecast")
 
 
 @dataclass
@@ -180,6 +187,56 @@ def forecast_series(y: np.ndarray, h: int, params: dict, algorithm: str) -> dict
     return {"algorithm": algo, "p50": np.clip(f, 0, None), "profile": tm.error_profile(test, f_test)}
 
 
+# ---------------------------------------------------------------- расчёт по товарным группам (Р-1)
+@dataclass
+class GroupJob:
+    """Ряды одной товарной группы с общими коэффициентами событий и погоды — единица параллельного расчёта."""
+    hist_coef: np.ndarray
+    fut_coef: np.ndarray
+    weather: np.ndarray
+    days: list
+    params: dict
+    algorithm: str
+    series: list = field(default_factory=list)   # (pid, lid, продажи, дни дефицита)
+
+
+def forecast_group(job: GroupJob) -> tuple[list[dict], dict]:
+    """Прогноз всех рядов группы. Не обращается к БД, поэтому выполняется и в отдельном процессе."""
+    rows, used = [], defaultdict(int)
+    for pid, lid, y_raw, stockout in job.series:
+        y = prepare(y_raw, stockout, job.hist_coef)
+        first = int(np.argmax(y_raw > 0))          # ряд начинается с первой продажи
+        res = forecast_series(y[first:], len(job.days), job.params, job.algorithm)
+        used[res["algorithm"]] += 1
+        p50 = res["p50"] * job.fut_coef * job.weather
+        p80, p95 = tm.quantiles(p50, res["profile"])
+        for i, d in enumerate(job.days):
+            rows.append({"product_id": pid, "location_id": lid, "day": d, "p50": round(float(p50[i]), 3),
+                         "p80": round(float(p80[i]), 3), "p95": round(float(p95[i]), 3),
+                         "sigma": round(res["profile"]["sigma"], 4), "event_coef": round(float(job.fut_coef[i]), 4),
+                         "algorithm": res["algorithm"]})
+    return rows, dict(used)
+
+
+def _workers(n_jobs: int) -> int:
+    """Число процессов: FLORAPLAN_FORECAST_WORKERS, но не больше числа групп. 0 — половина логических
+    процессоров (≈ число физических ядер: на гиперпоточных ядрах расчёт не ускоряется, а мешает)."""
+    w = get_settings().forecast_workers or max(1, (os.cpu_count() or 1) // 2)
+    return max(1, min(w, n_jobs))
+
+
+def _map(fn, jobs: list, workers: int):
+    if workers <= 1:
+        return map(fn, jobs)
+    try:
+        # spawn, а не fork: сервер и планировщик многопоточные, fork в них может зависнуть
+        with ProcessPoolExecutor(max_workers=workers, mp_context=multiprocessing.get_context("spawn")) as ex:
+            return list(ex.map(fn, jobs))
+    except (OSError, BrokenProcessPool) as e:   # процессы недоступны — считаем в одном
+        log.warning("параллельный расчёт прогноза недоступен (%s), расчёт в одном процессе", e)
+        return map(fn, jobs)
+
+
 # ---------------------------------------------------------------- расчёт
 def compute(db: Session, base: date, h: int, model: ForecastModel, history_days: int) -> tuple[list[dict], dict]:
     """Прогноз всех рядов на [base, base + h). История — до base − 1."""
@@ -190,32 +247,28 @@ def compute(db: Session, base: date, h: int, model: ForecastModel, history_days:
     params = model.params or {}
     betas = weather_betas(db, data, coef) if params.get("use_weather", True) else {}
     temps = wx.temps(db, base, end_f)
-    rows, used = [], defaultdict(int)
-    recent = 56
     fut = [base + timedelta(days=i) for i in range(h)]
     hist_days = [data.start + timedelta(days=i) for i in range(data.n)]
-    by_group = {}
+    recent = 56
+    jobs = {}
     for g in set(data.group_of.values()):
-        by_group[g] = (np.array([coef[(g, d)] for d in hist_days]),
-                       np.array([coef[(g, d)] for d in fut]),
-                       np.array([math.exp(betas.get(g, 0.0) * (temps[d] - wx.normal(d))) for d in fut]))
+        jobs[g] = GroupJob(np.array([coef[(g, d)] for d in hist_days]),
+                           np.array([coef[(g, d)] for d in fut]),
+                           np.array([math.exp(betas.get(g, 0.0) * (temps[d] - wx.normal(d))) for d in fut]),
+                           fut, params, model.algorithm)
     for (pid, lid), y_raw in data.series.items():
         if y_raw[-recent:].sum() <= 0:
             continue          # давно не продавался — прогноз не строится
-        g = data.group_of[pid]
-        hist_coef, fc, wf = by_group[g]
-        y = prepare(y_raw, data.stockout[(pid, lid)], hist_coef)
-        first = int(np.argmax(y_raw > 0))          # ряд начинается с первой продажи
-        res = forecast_series(y[first:], h, params, model.algorithm)
-        used[res["algorithm"]] += 1
-        p50 = res["p50"] * fc * wf
-        p80, p95 = tm.quantiles(p50, res["profile"])
-        for i, d in enumerate(fut):
-            rows.append({"product_id": pid, "location_id": lid, "day": d, "p50": round(float(p50[i]), 3),
-                         "p80": round(float(p80[i]), 3), "p95": round(float(p95[i]), 3),
-                         "sigma": round(res["profile"]["sigma"], 4), "event_coef": round(float(fc[i]), 4),
-                         "algorithm": res["algorithm"]})
-    return rows, {"algorithms": dict(used), "events": info, "weather_betas": betas, "history_start": start}
+        jobs[data.group_of[pid]].series.append((pid, lid, y_raw, data.stockout[(pid, lid)]))
+    jobs = [j for j in jobs.values() if j.series]
+    rows, used = [], defaultdict(int)
+    workers = _workers(len(jobs))
+    for part_rows, part_used in _map(forecast_group, jobs, workers):
+        rows.extend(part_rows)
+        for k, v in part_used.items():
+            used[k] += v
+    return rows, {"algorithms": dict(used), "events": info, "weather_betas": betas, "history_start": start,
+                  "workers": workers}
 
 
 def run(db: Session, base: date | None = None, trigger: str = "manual", user=None) -> ForecastRun:
@@ -236,7 +289,8 @@ def run(db: Session, base: date | None = None, trigger: str = "manual", user=Non
         r.series = len({(x["product_id"], x["location_id"]) for x in rows})
         r.status = "ok"
         algos = ", ".join(f"{tm_name(k)}: {v}" for k, v in sorted(meta["algorithms"].items()))
-        r.message = f"рядов {r.series}, горизонт {h} дн., {time.time() - t0:.1f} с; модели — {algos or 'нет'}"
+        r.message = (f"рядов {r.series}, горизонт {h} дн., {time.time() - t0:.1f} с, процессов {meta['workers']}; "
+                     f"модели — {algos or 'нет'}")
         _cleanup(db, base)
     except Exception as e:
         db.rollback()

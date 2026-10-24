@@ -70,6 +70,26 @@ def test_run_creates_quantiles_and_estimates_holiday(session):
     assert eu.algorithm in ("croston", "seasonal_naive", "holt_winters")
 
 
+
+def test_parallel_by_groups_matches_sequential(session, monkeypatch):
+    """Р-1: расчёт по товарным группам в нескольких процессах даёт тот же прогноз, что и в одном."""
+    from floraplan.config import get_settings
+    ref = reference(session)
+    base = date(2026, 3, 2)
+    history.make(session, ref, base - timedelta(days=1), days=400)
+    model = fs.published_model(session)
+    out = {}
+    for w in ("1", "3"):
+        monkeypatch.setenv("FLORAPLAN_FORECAST_WORKERS", w)
+        get_settings.cache_clear()
+        rows, meta = fs.compute(session, base, 14, model, 400)
+        out[w] = (sorted(rows, key=lambda x: (x["product_id"], x["location_id"], x["day"])), meta)
+    get_settings.cache_clear()
+    assert out["1"][1]["workers"] == 1 and out["3"][1]["workers"] == 3      # три группы — три процесса
+    assert out["1"][0] == out["3"][0] and out["1"][0]
+    assert out["1"][1]["algorithms"] == out["3"][1]["algorithms"]
+
+
 def test_manual_coefficient_and_stockout(session):
     ref = reference(session)
     base = date(2026, 3, 2)

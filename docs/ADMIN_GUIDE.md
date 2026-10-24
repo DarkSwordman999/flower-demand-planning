@@ -16,6 +16,8 @@ docker compose up -d --build
 docker compose exec api floraplan demo     # при необходимости — демо-данные
 ```
 
+Готовые образы без сборки: раскомментируйте в `.env` строки `IMAGE_PREFIX=ghcr.io/darkswordman999/flower-demand-planning` и `TAG=1.1.0`, затем `docker compose pull && docker compose up -d`.
+
 Сервисы: `db` (PostgreSQL 16), `api` (FastAPI), `scheduler` (задачи по расписанию), `web` (nginx + интерфейс, порт `HTTP_PORT`, по умолчанию 8080). Данные — тома `pgdata` и `floradata`. HTTPS (требование Б-1) — сервис `proxy` (Caddy): задайте в `.env` домен сервера `DOMAIN` и запустите `docker compose --profile https up -d`. Caddy сам получает и продлевает сертификат Let's Encrypt (порты 80 и 443 должны быть доступны из интернета) и добавляет заголовок HSTS; при `DOMAIN=localhost` или IP-адресе используется сертификат собственного центра Caddy. Порт `HTTP_PORT` после этого стоит закрыть в брандмауэре.
 
 ### 3. Из исходников

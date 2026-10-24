@@ -107,14 +107,21 @@ export async function download(url: string, params?: Record<string, any>) {
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
 }
 
-/** Открыть HTML-ответ (этикетки) в новом окне для печати. */
+/** Открыть HTML-ответ (этикетки) в новом окне для печати. Окно открывается сразу по нажатию —
+ *  иначе после ожидания ответа сервера браузер считает его всплывающим и блокирует. */
 export async function openHtml(url: string, params?: Record<string, any>) {
-  const r = (await request("GET", url, undefined, params, true)) as Response;
-  const html = await r.text();
   const w = window.open("", "_blank");
-  if (w) {
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+  if (w) w.document.write("<p style='font:14px Arial'>Подготовка этикеток…</p>");
+  try {
+    const r = (await request("GET", url, undefined, params, true)) as Response;
+    const html = await r.text();
+    if (w) {
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+    }
+  } catch (e) {
+    w?.close();
+    throw e;
   }
 }

@@ -49,8 +49,14 @@ def test_user_lifecycle_and_audit(client, login):
     login("ivanova", "qwerty1")
     r = client.put(f"/api/admin/users/{uid}", headers=h,
                    json={"login": "ivanova", "full_name": "Иванова А. А.", "role": "buyer", "active": False})
-    assert r.status_code == 200
+    assert r.status_code == 200 and r.json()["active"] is False
+    assert next(u for u in client.get("/api/admin/users", headers=h).json() if u["id"] == uid)["active"] is False
     assert client.post("/api/auth/token", data={"username": "ivanova", "password": "qwerty1"}).status_code == 401
+    # чужой логин и несуществующий салон — понятная ошибка, а не 500
+    bad = {"full_name": "x", "role": "buyer", "active": True}
+    assert client.put(f"/api/admin/users/{uid}", headers=h, json={**bad, "login": "buyer"}).status_code == 409
+    assert client.put(f"/api/admin/users/{uid}", headers=h,
+                      json={**bad, "login": "ivanova", "location_id": 99999}).status_code == 400
     log = client.get("/api/admin/audit", headers=h).json()
     assert any(x["action"] == "Создан пользователь" for x in log)
 

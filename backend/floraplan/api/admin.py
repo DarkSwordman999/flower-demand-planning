@@ -35,20 +35,24 @@ class UserIn(BaseModel):
     active: bool = True
 
 
-def _check(body: UserIn):
+def _check(db: Session, body: UserIn, uid: int | None = None):
+    body.login = body.login.strip()
     if body.role not in ROLES:
         raise HTTPException(400, "Неизвестная роль")
     if body.password is not None and len(body.password) < 6:
         raise HTTPException(400, "Пароль должен быть не короче 6 символов")
+    if body.location_id is not None and db.get(Location, body.location_id) is None:
+        raise HTTPException(400, "Место хранения не найдено")
+    other = db.query(User).filter(User.login == body.login).first()
+    if other is not None and other.id != uid:
+        raise HTTPException(409, "Пользователь с таким логином уже есть")
 
 
 @router.post("/users", response_model=UserOut)
 def create_user(body: UserIn, me: User = Depends(admin_only), db: Session = Depends(get_db)):
-    _check(body)
+    _check(db, body)
     if not body.password:
         raise HTTPException(400, "Задайте пароль")
-    if db.query(User).filter(User.login == body.login).first():
-        raise HTTPException(409, "Пользователь с таким логином уже есть")
     u = User(login=body.login, full_name=body.full_name, role=body.role, location_id=body.location_id,
              active=body.active, password_hash=hash_password(body.password))
     db.add(u)
@@ -60,10 +64,10 @@ def create_user(body: UserIn, me: User = Depends(admin_only), db: Session = Depe
 
 @router.put("/users/{user_id}", response_model=UserOut)
 def update_user(user_id: int, body: UserIn, me: User = Depends(admin_only), db: Session = Depends(get_db)):
-    _check(body)
     u = db.get(User, user_id)
     if u is None:
         raise HTTPException(404, "Пользователь не найден")
+    _check(db, body, u.id)
     if u.id == me.id and (body.role != "admin" or not body.active):
         raise HTTPException(400, "Нельзя снять с себя роль администратора или заблокировать себя")
     u.login, u.full_name, u.role, u.location_id, u.active = body.login, body.full_name, body.role, body.location_id, body.active

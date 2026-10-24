@@ -56,8 +56,15 @@ class ShopOrderIn(BaseModel):
     lines: list[ShopLine]
 
 
+def mask_phone(phone: str) -> str:
+    """Телефон для ролей без доступа к персональным данным: видны только первые и последние 2 символа."""
+    if len(phone) <= 6:
+        return "*" * len(phone)
+    return phone[:2] + "*" * (len(phone) - 4) + phone[-2:]
+
+
 def order_out(o: OnlineOrder, show_pd: bool) -> dict:
-    phone = o.phone if show_pd else (o.phone[:2] + "*" * max(0, len(o.phone) - 4) + o.phone[-2:] if o.phone else "")
+    phone = o.phone if show_pd else mask_phone(o.phone)
     return {"id": o.id, "external_id": o.external_id, "created_at": o.created_at, "delivery_date": o.delivery_date,
             "channel": o.channel.name if o.channel else "Интернет-магазин",
             "customer_name": o.customer_name, "phone": phone, "status": o.status,

@@ -184,3 +184,9 @@ def test_preorder_reserved_when_goods_arrive(client, login, session):
     # хватает на один заказ — резервируется тот, что доставлять раньше
     assert session.get(OnlineOrder, oid).status == "reserved"
     assert session.get(OnlineOrder, late).status == "preorder"
+
+
+def test_mask_phone():
+    from floraplan.api.shop import mask_phone
+    assert mask_phone("+79001234567") == "+7********67"
+    assert mask_phone("1234") == "****" and mask_phone("") == ""

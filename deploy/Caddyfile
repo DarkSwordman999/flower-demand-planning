@@ -1,8 +1,0 @@
-# HTTPS для ФлораПлан (требование Б-1): Caddy сам получает и продлевает сертификат Let's Encrypt
-# для домена DOMAIN (порты 80 и 443 должны быть доступны из интернета). DOMAIN=localhost или IP —
-# сертификат собственного центра Caddy (для проверки в локальной сети).
-{$DOMAIN:localhost} {
-	encode gzip
-	header Strict-Transport-Security "max-age=31536000"
-	reverse_proxy web:80
-}

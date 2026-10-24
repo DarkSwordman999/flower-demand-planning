@@ -68,6 +68,13 @@ def job_shop_push(s):
     return f"передано позиций {len(data['stock']['items'])}"
 
 
+@_job("обезличивание персональных данных")
+def job_anonymize(s):
+    from .services import shop
+    n = shop.anonymize_closed(s)
+    return f"обезличено заказов: {n}" if n else ""
+
+
 @_job("резервная копия")
 def job_backup(s):
     from .services import backup
@@ -83,6 +90,8 @@ def _add_jobs(sched) -> None:
     sched.add_job(job_onec, IntervalTrigger(hours=1), id="onec", next_run_time=datetime.now())
     sched.add_job(job_weather, IntervalTrigger(hours=6), id="weather", next_run_time=datetime.now())
     sched.add_job(job_shop_push, IntervalTrigger(minutes=15), id="shop")
+    sched.add_job(job_anonymize, CronTrigger(hour=1, minute=30, timezone=tz), id="anonymize", coalesce=True,
+                  misfire_grace_time=6 * 3600)
     sched.add_job(job_backup, CronTrigger(hour=2, minute=0, timezone=tz), id="backup", coalesce=True,
                   misfire_grace_time=6 * 3600)
 

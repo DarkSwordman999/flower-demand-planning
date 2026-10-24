@@ -143,7 +143,8 @@ def jobs(request: Request, _: User = Depends(require("analyst", "director"))):
     """Задачи планировщика и время следующего запуска."""
     sched = getattr(request.app.state, "scheduler", None)
     names = {"forecast": "Прогноз спроса", "onec": "Чеки «1С» из папки обмена", "weather": "Погода",
-             "shop": "Выгрузка остатков на сайт", "backup": "Резервная копия БД"}
+             "shop": "Выгрузка остатков на сайт", "backup": "Резервная копия БД",
+             "anonymize": "Обезличивание данных покупателей (152-ФЗ)"}
     if sched is None:
         return {"running": False, "jobs": []}
     return {"running": True, "jobs": [{"id": j.id, "name": names.get(j.id, j.id), "next_run": j.next_run_time}

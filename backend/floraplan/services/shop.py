@@ -1,10 +1,10 @@
 """Интернет-магазин (П-11, С-14): остатки и цены для сайта, заказы с резервированием, предзаказы."""
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from .. import audit
+from .. import appsettings, audit
 from ..errors import Conflict, DomainError, NotFound
 from ..models import Batch, Location, OnlineOrder, OnlineOrderLine, Product, Reservation, User
 from .sales import record_sale
@@ -152,3 +152,23 @@ def cancel(db: Session, order: OnlineOrder, user: User | None) -> OnlineOrder:
     order.status = "cancelled"
     audit.log(db, user, "Онлайн-заказ отменён", "online_order", order.id, order.external_id)
     return order
+
+
+ANONYMIZED = "(обезличено)"
+
+
+def anonymize_closed(db: Session, now: datetime | None = None) -> int:
+    """Б-1, 152-ФЗ: в выполненных и отменённых онлайн-заказах старше срока хранения стираются имя, телефон
+    и комментарий покупателя (там бывает адрес). Состав, суммы и продажи остаются для отчётов и прогноза."""
+    days = int(appsettings.get(db, "pd_retention_days"))
+    border = (now or datetime.now()) - timedelta(days=days)
+    orders = (db.query(OnlineOrder).filter(OnlineOrder.status.in_(("completed", "cancelled")),
+                                           OnlineOrder.created_at < border,
+                                           (OnlineOrder.customer_name != ANONYMIZED) | (OnlineOrder.phone != "")
+                                           | (OnlineOrder.comment != "")).all())
+    for o in orders:
+        o.customer_name, o.phone, o.comment = ANONYMIZED, "", ""
+    if orders:
+        audit.log(db, None, "Обезличены персональные данные онлайн-заказов", "online_order", "",
+                  f"заказов {len(orders)}, закрытых до {border:%d.%m.%Y}")
+    return len(orders)

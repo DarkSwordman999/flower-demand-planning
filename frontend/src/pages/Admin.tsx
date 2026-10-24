@@ -108,6 +108,7 @@ const SETTINGS: [string, string, "number" | "text" | "share", number?, number?, 
   ["service_level_min", "Уровень обслуживания α: не ниже", "share", 0.5, 0.99, 0.01],
   ["service_level_max", "Уровень обслуживания α: не выше", "share", 0.5, 0.995, 0.01],
   ["salvage_share", "Доля себестоимости, возвращаемая при списании", "share", 0, 1, 0.05],
+  ["pd_retention_days", "Обезличивать данные покупателей в закрытых онлайн-заказах через, дней (152-ФЗ)", "number", 30, 3650, 30],
 ];
 
 function Settings() {

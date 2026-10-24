@@ -89,6 +89,33 @@ def test_cancel_releases_and_pd_masked(client, login, session):
     assert session.get(OnlineOrder, oid).status == "cancelled"
 
 
+
+def test_closed_orders_anonymized_after_retention(client, login, session):
+    """Б-1, 152-ФЗ: закрытые заказы старше срока хранения обезличиваются, открытые и свежие — нет."""
+    from datetime import datetime
+    from floraplan import db
+    from floraplan.services import shop
+    ref = reference(session)
+    _stock(session, ref)
+    ids = {e: client.post("/api/shop/orders", headers=KEY, json=_order(e, 2, comment="ул. Ленина, 1")).json()["order_id"]
+           for e in ("OLD-C", "OLD-OPEN", "NEW-C")}
+    for e in ("OLD-C", "NEW-C"):
+        client.post(f"/api/online-orders/{ids[e]}/cancel", headers=login("shop_manager"))
+    with db.session() as s:
+        for e in ("OLD-C", "OLD-OPEN"):
+            s.get(OnlineOrder, ids[e]).created_at = datetime.now() - timedelta(days=400)
+        s.commit()
+        assert shop.anonymize_closed(s) == 1
+        s.commit()
+        assert shop.anonymize_closed(s) == 0          # повторный запуск ничего не меняет
+    session.expire_all()
+    old = session.get(OnlineOrder, ids["OLD-C"])
+    assert (old.customer_name, old.phone, old.comment) == (shop.ANONYMIZED, "", "")
+    assert old.total > 0 and old.lines                 # состав и сумма остаются для отчётов
+    for e in ("OLD-OPEN", "NEW-C"):
+        assert session.get(OnlineOrder, ids[e]).phone == "+79001234567"
+
+
 def test_past_delivery_date_rejected(client, session):
     ref = reference(session)
     _stock(session, ref)

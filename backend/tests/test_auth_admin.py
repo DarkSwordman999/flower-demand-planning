@@ -139,3 +139,26 @@ def test_scheduler_starts_with_all_jobs(session):
         assert "hour='3'" in str(f)
     finally:
         s.shutdown(wait=False)
+
+
+def test_token_secret_generated_when_not_set(tmp_path, monkeypatch):
+    """Б-1: без FLORAPLAN_SECRET_KEY (или с примером из .env.example) токены подписываются случайным ключом
+    из data/secret.key, а не общеизвестной строкой — иначе вход можно подделать."""
+    from floraplan.config import Settings
+    for weak in ("", "change-me-in-production"):
+        d = tmp_path / (weak or "empty")
+        s = Settings(data_dir=d, secret_key=weak)
+        key = s.token_secret
+        assert len(key) >= 40 and key != weak
+        assert (d / "secret.key").read_text(encoding="ascii") == key
+        assert Settings(data_dir=d, secret_key=weak).token_secret == key     # тот же ключ после перезапуска
+    assert Settings(data_dir=tmp_path / "own", secret_key="мой-ключ").token_secret == "мой-ключ"
+    assert not (tmp_path / "own" / "secret.key").exists()
+
+
+def test_token_with_default_key_rejected(client):
+    import jwt
+    from datetime import datetime, timedelta, timezone
+    forged = jwt.encode({"sub": "1", "role": "admin", "exp": datetime.now(timezone.utc) + timedelta(hours=1)},
+                        "change-me-in-production", algorithm="HS256")
+    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {forged}"}).status_code == 401

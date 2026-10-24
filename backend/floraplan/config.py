@@ -4,7 +4,13 @@ from pathlib import Path
 import os
 import sys
 
+import secrets
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# прежнее значение по умолчанию и пример из deploy/.env.example — такие ключи не используются
+_WEAK_SECRETS = {"change-me-in-production", "длинная-случайная-строка-для-подписи-токенов"}
+_secret_cache: dict[Path, str] = {}
 
 
 def _default_data_dir() -> Path:
@@ -27,7 +33,8 @@ class Settings(BaseSettings):
     data_dir: Path = _default_data_dir()
     # postgresql+psycopg://user:pass@host:5432/flora_db  или sqlite:///путь.db
     database_url: str = ""
-    secret_key: str = "change-me-in-production"
+    # ключ подписи токенов входа; не задан — создаётся случайный и хранится в data/secret.key
+    secret_key: str = ""
     token_hours: int = 12
 
     # ключи внешних систем (заголовок X-API-Key)
@@ -72,6 +79,28 @@ class Settings(BaseSettings):
         if self.database_url:
             return self.database_url
         return f"sqlite:///{(self.data_dir / 'floraplan.db').as_posix()}"
+
+    @property
+    def token_secret(self) -> str:
+        """Ключ подписи токенов (Б-1). Без FLORAPLAN_SECRET_KEY ключ создаётся один раз при первом запуске
+        и лежит в data/secret.key: общеизвестный ключ по умолчанию позволил бы подделать вход."""
+        if self.secret_key and self.secret_key not in _WEAK_SECRETS:
+            return self.secret_key
+        path = self.data_dir / "secret.key"
+        cached = _secret_cache.get(path)
+        if cached:
+            return cached
+        self.ensure_dirs()
+        try:
+            with open(path, "x", encoding="ascii") as f:     # "x": два процесса не создадут разные ключи
+                f.write(secrets.token_urlsafe(48))
+        except FileExistsError:
+            pass
+        key = path.read_text(encoding="ascii").strip()
+        if not key:
+            raise RuntimeError(f"Пустой файл ключа {path}: удалите его, ключ создастся заново")
+        _secret_cache[path] = key
+        return key
 
     @property
     def ssl(self) -> dict:

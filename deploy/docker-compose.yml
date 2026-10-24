@@ -29,7 +29,7 @@ services:
     depends_on: { db: { condition: service_healthy } }
     environment: &env
       FLORAPLAN_DATABASE_URL: postgresql+psycopg://flora:${DB_PASSWORD}@db:5432/flora_db
-      FLORAPLAN_SECRET_KEY: ${SECRET_KEY:?задайте SECRET_KEY в .env}
+      FLORAPLAN_SECRET_KEY: ${SECRET_KEY:-}   # пусто — ключ создаётся в томе floradata (/data/secret.key)
       FLORAPLAN_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       FLORAPLAN_SHOP_API_KEY: ${SHOP_API_KEY:-shop-demo-key}
       FLORAPLAN_ONEC_API_KEY: ${ONEC_API_KEY:-1c-demo-key}

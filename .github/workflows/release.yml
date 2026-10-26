@@ -43,6 +43,7 @@ jobs:
         run: |
           $v = "${{ github.ref_name }}".TrimStart("v")
           Copy-Item packaging/windows/README.txt release/dist/FloraPlan/
+          Copy-Item LICENSE release/dist/FloraPlan/LICENSE.txt
           Compress-Archive -Path release/dist/FloraPlan -DestinationPath "release/FloraPlan-$v-windows-x64.zip"
       - uses: actions/upload-artifact@v7
         with:

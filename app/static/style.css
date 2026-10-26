@@ -3,17 +3,18 @@ nav { background: #2f7a4f; padding: 10px 20px; display: flex; gap: 16px; flex-wr
 nav b, nav a { color: #fff; text-decoration: none; }
 nav a:hover { text-decoration: underline; }
 nav .right { margin-left: auto; }
-main { padding: 20px; max-width: 1100px; }
-table { border-collapse: collapse; background: #fff; margin-bottom: 20px; }
+main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+h1, h2, main > p { text-align: center; }
+table { border-collapse: collapse; background: #fff; margin: 0 auto 20px; }
 th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
 th { background: #e6efe9; }
 tr.yellow { background: #fff6d5; }
 tr.red { background: #fbdcdc; }
 .small { font-size: 12px; color: #555; }
 .box { background: #fff; padding: 15px; border: 1px solid #ccc; display: flex; flex-direction: column;
-       gap: 10px; max-width: 400px; margin-bottom: 20px; }
+       gap: 10px; max-width: 400px; margin: 0 auto 20px; }
 .inline { display: flex; gap: 5px; }
-.flash { background: #e6efe9; border-left: 4px solid #2f7a4f; padding: 8px 12px; }
+.flash { background: #e6efe9; border-left: 4px solid #2f7a4f; padding: 8px 12px; text-align: center; }
 button { background: #2f7a4f; color: #fff; border: 0; padding: 6px 14px; cursor: pointer; }
 input, select { padding: 4px; }
 label { display: flex; flex-direction: column; gap: 4px; }

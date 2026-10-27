@@ -407,30 +407,29 @@ def word_find_splits(word, path):
 
 def analyze_splits(doc):
     """То же для уже открытого документа."""
-    if True:
-        doc.Repaginate()
-        changes = []
-        prev = {}  # num -> страница последней строки предыдущей части
-        for i in range(1, doc.Tables.Count + 1):
-            t = doc.Tables(i)
-            title = t.Title or ""
-            if "|" not in title:
-                continue
-            num, start = title.split("|")
-            start = int(start)
-            n = t.Rows.Count
-            first_page = t.Rows(1).Range.Information(3)
-            # лишний разрез: продолжение начинается на той же странице, где закончилась предыдущая часть
-            if start > 0 and prev.get(num) == first_page:
-                changes.append((i, num, "del", start))
-            for r in range(2, n + 1):
-                pg = t.Rows(r).Range.Information(3)
-                if pg != first_page:
-                    if r > 2:
-                        changes.append((i, num, "add", start + (r - 2)))
-                    break
-            prev[num] = t.Rows(n).Range.Information(3)
-        return changes
+    doc.Repaginate()
+    changes = []
+    prev = {}  # num -> страница последней строки предыдущей части
+    for i in range(1, doc.Tables.Count + 1):
+        t = doc.Tables(i)
+        title = t.Title or ""
+        if "|" not in title:
+            continue
+        num, start = title.split("|")
+        start = int(start)
+        n = t.Rows.Count
+        first_page = t.Rows(1).Range.Information(3)
+        # лишний разрез: продолжение начинается на той же странице, где закончилась предыдущая часть
+        if start > 0 and prev.get(num) == first_page:
+            changes.append((i, num, "del", start))
+        for r in range(2, n + 1):
+            pg = t.Rows(r).Range.Information(3)
+            if pg != first_page:
+                if r > 2:
+                    changes.append((i, num, "add", start + (r - 2)))
+                break
+        prev[num] = t.Rows(n).Range.Information(3)
+    return changes
 
 
 def word_export_pdf(word, path, pdf_path):

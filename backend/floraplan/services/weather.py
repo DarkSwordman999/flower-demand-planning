@@ -32,8 +32,11 @@ def fetch(db: Session, client: httpx.Client | None = None) -> dict:
     params = {"latitude": s.latitude, "longitude": s.longitude, "daily": "temperature_2m_mean,precipitation_sum",
               "forecast_days": 14, "past_days": 31, "timezone": s.timezone}
     try:
-        c = client or httpx.Client(timeout=15)
-        r = c.get(URL, params=params)
+        if client is None:
+            with httpx.Client(timeout=15) as c:   # закрывается после запроса
+                r = c.get(URL, params=params)
+        else:
+            r = client.get(URL, params=params)
         r.raise_for_status()
         d = r.json()["daily"]
         n = 0

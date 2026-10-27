@@ -14,15 +14,19 @@ CLIMATE = [-7.5, -6.8, -1.4, 6.9, 13.5, 16.9, 18.9, 17.1, 11.4, 5.3, -0.8, -5.2]
 URL = "https://api.open-meteo.com/v1/forecast"
 
 
+def _mid(year: int, month: int) -> date:
+    """15-е число месяца; month может выходить за 1…12 (соседний год)."""
+    year += (month - 1) // 12
+    return date(year, (month - 1) % 12 + 1, 15)
+
+
 def normal(day: date) -> float:
-    """Норма на день: линейная интерполяция между серединами месяцев."""
-    m = day.month - 1
-    mid = 15
-    if day.day >= mid:
-        a, b, t = CLIMATE[m], CLIMATE[(m + 1) % 12], (day.day - mid) / 30
-    else:
-        a, b, t = CLIMATE[(m - 1) % 12], CLIMATE[m], (day.day + 15) / 30
-    return a + (b - a) * t
+    """Норма на день: линейная интерполяция между серединами месяцев по фактическому числу дней
+    (в феврале 28–29, в остальных 30–31), поэтому на границах месяцев нет скачков."""
+    mid = _mid(day.year, day.month)
+    a, b = (mid, _mid(day.year, day.month + 1)) if day >= mid else (_mid(day.year, day.month - 1), mid)
+    t = (day - a).days / (b - a).days
+    return CLIMATE[a.month - 1] + (CLIMATE[b.month - 1] - CLIMATE[a.month - 1]) * t
 
 
 def fetch(db: Session, client: httpx.Client | None = None) -> dict:

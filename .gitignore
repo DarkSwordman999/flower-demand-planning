@@ -15,3 +15,5 @@ frontend/node_modules/
 frontend/dist/
 release/
 .env
+# демо-база учебной редакции (ветка coursework)
+app/*.db

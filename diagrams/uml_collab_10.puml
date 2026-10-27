@@ -1,0 +1,22 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam rectangle {
+ BorderColor black
+}
+actor "Кладовщик" as KL
+rectangle ":ЭкранЗапасов\n«boundary»" as UI
+rectangle ":СервисЗапасов\n«control»" as S
+rectangle ":Партия\n«entity»" as P
+rectangle ":ДвижениеЗапаса\n«entity»" as M
+rectangle ":ЖурналАудита\n«entity»" as AU
+KL -- UI : "1: открыть партии места ↓\n4: [для каждой партии] ввести\nфактическое количество ↓\n5: провести инвентаризацию ↓"
+UI -- S : "2: партии(место) ↓\n6: инвентаризация(факт по\nпартиям) ↓\n11: расхождения ↑"
+S -- P : "3: выбрать(место, остаток > 0) ↓\n8: [факт отличается от учёта]\nsetОстаток(факт) ↓"
+S -- S : "7: [для каждой партии]\nпроверитьФакт() [не меньше 0 и\nрезерва]"
+S -- M : "9: [факт отличается от учёта]\nсоздать(инвентаризация, разница)\n↓"
+S -- AU : "10: записать(инвентаризация,\nизлишки и недостачи) ↓"
+@enduml

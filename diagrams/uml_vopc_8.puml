@@ -1,0 +1,69 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+class ЭкранПриёмкиТСД <<boundary>> {
+ +выбратьЗаказПути()
+ +сканироватьШтрихкод()
+ +завершитьПриёмку()
+}
+class КонтроллерПриёмки <<control>> {
+ +заказыКПриёмке()
+ +принять(заказ, позиции)
+ -проверитьКоличества()
+ -запретитьПриёмкуПозиции()
+ -сверитьСЗаказом()
+}
+class ЗаказПоставщику <<entity>> {
+ {field} number: строка(30)
+ {field} order_date: дата
+ {field} expected_date: дата
+ {field} next_delivery_date: дата
+ {field} status: строка(20)
+ {field} total: дробное
+ --
+ +выбрать(статус = в пути)
+ +setСтатус(принят)
+}
+class Партия <<entity>> {
+ {field} received_at: дата
+ {field} expiry_date: дата
+ {field} qty_initial: дробное
+ {field} qty: дробное
+ {field} reserved: дробное
+ {field} cost: дробное
+ --
+ +создать(...)
+}
+class ДвижениеЗапаса <<entity>> {
+ {field} ts: дата и время
+ {field} day: дата
+ {field} kind: строка(20)
+ {field} qty: дробное
+ {field} cost: дробное
+ {field} ref: строка(100)
+ --
+ +создать(приход)
+}
+class АктРасхождений <<entity>> {
+ {field} number: строка(30)
+ {field} lines: JSON
+ --
+ +создать(номер АР, позиции)
+}
+class СервисИнтернетМагазина <<control>> {
+ +зарезервироватьПредзаказы(склад)
+}
+ЭкранПриёмкиТСД --> КонтроллерПриёмки
+КонтроллерПриёмки --> ЗаказПоставщику
+КонтроллерПриёмки --> Партия
+КонтроллерПриёмки --> ДвижениеЗапаса
+КонтроллерПриёмки --> АктРасхождений
+КонтроллерПриёмки --> СервисИнтернетМагазина
+ЗаказПоставщику "1" -- "0..*" АктРасхождений
+Партия "1" -- "0..*" ДвижениеЗапаса
+@enduml

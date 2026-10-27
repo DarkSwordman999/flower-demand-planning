@@ -1,0 +1,72 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+class Товар <<entity>> {
+ {field} name: строка(200)
+ {field} kind: строка(100)
+ {field} variety: строка(100)
+ {field} stem_length: целое
+ {field} color: строка(50)
+ {field} unit: строка(20)
+ {field} shelf_life_days: целое
+ {field} pack_multiple: целое
+ {field} barcode: строка(50)
+ {field} price: дробное
+ {field} active: логическое
+}
+class МестоХранения <<entity>> {
+ {field} name: строка(100)
+ {field} type: строка(20)
+ {field} active: логическое
+}
+class Партия <<entity>> {
+ {field} received_at: дата
+ {field} expiry_date: дата
+ {field} qty_initial: дробное
+ {field} qty: дробное
+ {field} reserved: дробное
+ {field} cost: дробное
+ {field} discount_pct: дробное
+ {field} quality: строка(100)
+ {field} written_off: логическое
+}
+class ДвижениеЗапаса <<entity>> {
+ {field} ts: дата и время
+ {field} day: дата
+ {field} kind: строка(20)
+ {field} qty: дробное
+ {field} cost: дробное
+ {field} ref: строка(100)
+}
+class ДеньДефицита <<entity>> {
+ {field} day: дата
+}
+class Списание <<entity>> {
+ {field} act_number: строка(30)
+ {field} ts: дата и время
+ {field} qty: дробное
+ {field} cost: дробное
+ {field} comment: текст
+}
+class Уценка <<entity>> {
+ {field} ts: дата и время
+ {field} discount_pct: дробное
+ {field} price: дробное
+ {field} exported: логическое
+}
+Товар "1" -- "0..*" Партия
+МестоХранения "1" -- "0..*" Партия
+Партия "1" -- "0..*" ДвижениеЗапаса
+Товар "1" -- "0..*" ДвижениеЗапаса
+МестоХранения "1" -- "0..*" ДвижениеЗапаса
+Товар "1" -- "0..*" ДеньДефицита
+МестоХранения "1" -- "0..*" ДеньДефицита
+Партия "1" -- "0..*" Списание
+Партия "1" -- "0..*" Уценка
+@enduml

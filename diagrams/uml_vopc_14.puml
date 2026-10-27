@@ -1,0 +1,64 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+class ЭкранСроков <<boundary>> {
+ +открытьКонтрольСроков()
+ +подтвердитьУценку()
+}
+class СервисСроковИУценки <<control>> {
+ +рекомендации(салон)
+ -ожидаемыеПродажи()
+ -рекомендуемаяСкидка()
+ +уценить(партии, скидки)
+ -проверитьСкидку()
+}
+class Партия <<entity>> {
+ {field} received_at: дата
+ {field} expiry_date: дата
+ {field} qty_initial: дробное
+ {field} qty: дробное
+ {field} reserved: дробное
+ {field} cost: дробное
+ --
+ +партииКИстечению()
+ +setСкидка()
+}
+class Прогноз <<entity>> {
+ {field} day: дата
+ {field} p50: дробное
+ {field} p80: дробное
+ {field} p95: дробное
+ {field} sigma: дробное
+ {field} event_coef: дробное
+ --
+ +p50(партии)
+}
+class Уценка <<entity>> {
+ {field} ts: дата и время
+ {field} discount_pct: дробное
+ {field} price: дробное
+ {field} exported: логическое
+ --
+ +создать(...)
+}
+class ЖурналАудита <<entity>> {
+ {field} ts: дата и время
+ {field} user_login: строка(64)
+ {field} action: строка(100)
+ {field} entity: строка(50)
+ {field} details: текст
+ --
+ +записать(уценка)
+}
+ЭкранСроков --> СервисСроковИУценки
+СервисСроковИУценки --> Партия
+СервисСроковИУценки --> Прогноз
+СервисСроковИУценки --> Уценка
+СервисСроковИУценки --> ЖурналАудита
+Партия "1" -- "0..*" Уценка
+@enduml

@@ -1,0 +1,34 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+actor "Продавец-флорист" as PF
+boundary "ЭкранПродаж" as UI
+control "СервисПродаж" as S
+entity "Товар" as T
+entity "Продажа" as SL
+entity "Партия" as P
+entity "ДвижениеЗапаса" as M
+entity "ПродажиЗаДень" as DS
+entity "ДеньДефицита" as SO
+PF -> UI : сканировать товары, ввести количество и скидку
+UI -> S : записатьЧек(салон, строки)
+S -> T : найти(штрихкод)
+S -> SL : создать(салон, время, канал = касса)
+loop для каждой строки
+  S -> P : партииFEFO(товар, салон) [сначала с ранним сроком]
+  S -> P : уменьшитьОстаток(количество)
+  S -> M : создать(продажа)
+  S -> SL : добавитьСтроку(партия, цена с учётом уценки)
+  S -> DS : добавить(день, количество, выручка)
+  opt товар закончился
+    S -> SO : отметить(товар, салон, день)
+  end
+end
+opt продано больше учётного остатка
+  S -> S : записатьРасхождение()
+end
+S --> UI : чек записан
+@enduml

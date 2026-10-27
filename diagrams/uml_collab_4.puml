@@ -1,0 +1,24 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam rectangle {
+ BorderColor black
+}
+actor "Аналитик" as AN
+rectangle ":ЭкранПрогноза\n«boundary»" as UI
+rectangle ":СервисМоделейПрогноза\n«control»" as S
+rectangle ":МодельПрогноза\n«entity»" as M
+rectangle ":ПродажиЗаДень\n«entity»" as DS
+rectangle ":МоделиВременныхРядов\n«control»" as TS
+rectangle ":ЖурналАудита\n«entity»" as AU
+AN -- UI : "1: создать версию: алгоритм,\nотложенный период, тренд, погода\n↓\n10: опубликовать версию ↓"
+UI -- S : "2: создатьВерсию(параметры) ↓\n11: опубликовать(версия) ↓\n14: [WAPE кандидата хуже] «не\nопубликована: WAPE хуже\nдействующей» ↑\n17: [не хуже] версия\nопубликована ↑"
+S -- S : "3: проверитьАлгоритм() [авто,\nсезонная наивная, Хольт–Уинтерс,\nКростон]"
+S -- M : "4: создать(статус = кандидат) ↓\n8: setМетрики(WAPE, смещение) ↓\n13: [WAPE кандидата хуже]\nsetСтатус(отклонена) ↓\n15: [не хуже] вАрхив(прежняя\nопубликованная) ↓\n16: [не хуже]\nsetСтатус(опубликована) ↓"
+S -- DS : "5: ряды(до отложенного периода)\n↓"
+S -- TS : "6: оценить(кандидат,\nдействующая) [один и тот же\nпериод] ↓\n7: WAPE и смещение обеих версий\n↑\n12: оценить(кандидат,\nдействующая) ↓"
+S -- AU : "9: записать(создана версия) ↓"
+@enduml

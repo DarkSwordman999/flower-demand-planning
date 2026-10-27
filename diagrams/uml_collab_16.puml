@@ -1,0 +1,27 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam rectangle {
+ BorderColor black
+}
+actor "Директор" as DIR
+rectangle ":ЭкранОтчётов\n«boundary»" as UI
+rectangle ":СервисАналитики\n«control»" as S
+rectangle ":СтрокаПродажи\n«entity»" as SL
+rectangle ":Списание\n«entity»" as W
+rectangle ":ДвижениеЗапаса\n«entity»" as M
+rectangle ":Прогноз\n«entity»" as F
+rectangle ":ЗаказПоставщику\n«entity»" as Z
+rectangle ":ВыгрузкаXLSX\n«control»" as X
+DIR -- UI : "1: выбрать отчёт: вид, период,\nгруппировка, точка ↓\n10: выгрузить в XLSX ↓"
+UI -- S : "2: отчёт(вид, с, по,\nгруппировка, точка) ↓\n9: таблица отчёта ↑"
+S -- SL : "3: [продажи] выбрать(период)\n[выручка, количество, маржа] ↓\n7: [ABC/XYZ] выбрать(период)\n[выручка и вариация спроса] ↓"
+S -- W : "4: [списания] выбрать(период)\n[по причинам] ↓"
+S -- M : "5: [оборачиваемость]\nвыбрать(период) [средний запас и\nрасход] ↓"
+S -- F : "6: [точность прогноза]\nсравнитьСФактом(период) [WAPE,\nсмещение] ↓"
+S -- Z : "8: [закупки] выбрать(период)\n[заказы и поставки] ↓"
+UI -- X : "11: файл(отчёт) ↓\n12: файл XLSX ↑"
+@enduml

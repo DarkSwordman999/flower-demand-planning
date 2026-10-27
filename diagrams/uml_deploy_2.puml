@@ -1,0 +1,36 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+node "Рабочие места" as pc {
+  component "Интерфейс (React)" as ui
+}
+node "Сервер Компании" as app {
+  component "api" as api
+  component "Сервисы закупок,\nзапасов, продаж" as srv
+  component "Прогнозирование" as fc
+  component "scheduler" as sch
+}
+node "Сервер БД" as dbs {
+  database "floraplan" as db
+}
+node "Внешние системы" as ext {
+  component "«1С», кассы" as c1
+  component "Сайт, маркетплейсы" as web
+  component "Погода" as w
+  component "Поставщики" as sup
+}
+ui --> api : HTTPS
+api --> srv
+srv --> fc
+sch --> fc
+sch --> srv
+srv --> db
+fc --> db
+c1 --> api
+web --> api
+fc --> w
+srv --> sup
+@enduml

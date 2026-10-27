@@ -1,0 +1,107 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+class ЭкранПланаЗакупок <<boundary>> {
+ +выбратьПоставщикаДату()
+ +сформироватьЧерновик()
+ +изменитьКоличество()
+}
+class СервисПланированияЗакупок <<control>> {
+ +рассчитатьПлан(поставщик, дата)
+ -ближайшаяПоставка()
+ -уровеньОбслуживания()
+ -квантильСпроса(α)
+ -объём()
+ -округлитьДоКратности()
+ -дозаказатьГруппуA()
+ -сократитьПоABC()
+ +создатьЗаказ(план)
+ +изменитьСтроки(заказ, позиции)
+ -проверитьКратность()
+}
+class Поставщик <<entity>> {
+ {field} name: строка(200)
+ {field} country: строка(100)
+ {field} lead_time_days: целое
+ {field} min_order_sum: дробное
+ {field} email: строка(200)
+ {field} order_method: строка(20)
+ --
+ +графикИСрок()
+}
+class УсловиеПоставки <<entity>> {
+ {field} price: дробное
+ {field} pack_multiple: целое
+ --
+ +условия(поставщик)
+}
+class Прогноз <<entity>> {
+ {field} day: дата
+ {field} p50: дробное
+ {field} p80: дробное
+ {field} p95: дробное
+ {field} sigma: дробное
+ {field} event_coef: дробное
+ --
+ +p50(товары, период)
+}
+class Партия <<entity>> {
+ {field} received_at: дата
+ {field} expiry_date: дата
+ {field} qty_initial: дробное
+ {field} qty: дробное
+ {field} reserved: дробное
+ {field} cost: дробное
+ --
+ +запасДоИстеченияСрока()
+}
+class СценарийПраздника <<entity>> {
+ {field} name: строка(200)
+ {field} event_date: дата
+ {field} days_before: целое
+ {field} last_delivery_date: дата
+ {field} coefficients: JSON
+ {field} approved: логическое
+ --
+ +коэффициенты(группы)
+}
+class СтрокаЗаказа <<entity>> {
+ {field} recommended_qty: дробное
+ {field} ordered_qty: дробное
+ {field} price: дробное
+ {field} pack_multiple: целое
+ {field} change_reason: текст
+ {field} calc: JSON
+ --
+ +заказыВПути()
+}
+class ЗаказПоставщику <<entity>> {
+ {field} number: строка(30)
+ {field} order_date: дата
+ {field} expected_date: дата
+ {field} next_delivery_date: дата
+ {field} status: строка(20)
+ {field} total: дробное
+ --
+ +создать(статус = черновик, строки)
+ +пересчитатьСумму()
+}
+ЭкранПланаЗакупок --> СервисПланированияЗакупок
+СервисПланированияЗакупок --> Поставщик
+СервисПланированияЗакупок --> УсловиеПоставки
+СервисПланированияЗакупок --> Прогноз
+СервисПланированияЗакупок --> СценарийПраздника
+СервисПланированияЗакупок --> Партия
+СервисПланированияЗакупок --> СтрокаЗаказа
+СервисПланированияЗакупок --> ЗаказПоставщику
+Поставщик "1" -- "0..*" УсловиеПоставки
+Поставщик "1" -- "0..*" ЗаказПоставщику
+СценарийПраздника "1" -- "0..*" ЗаказПоставщику
+ЗаказПоставщику "1" -- "0..*" СтрокаЗаказа
+СтрокаЗаказа "1" -- "0..*" Партия
+@enduml

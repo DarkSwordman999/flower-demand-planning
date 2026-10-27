@@ -1,0 +1,35 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+actor "Директор" as DIR
+boundary "ЭкранОтчётов" as UI
+control "СервисАналитики" as S
+entity "СтрокаПродажи" as SL
+entity "Списание" as W
+entity "ДвижениеЗапаса" as M
+entity "Прогноз" as F
+entity "ЗаказПоставщику" as Z
+control "ВыгрузкаXLSX" as X
+DIR -> UI : выбрать отчёт: вид, период, группировка, точка
+UI -> S : отчёт(вид, с, по, группировка, точка)
+alt продажи
+  S -> SL : выбрать(период) [выручка, количество, маржа]
+else списания
+  S -> W : выбрать(период) [по причинам]
+else оборачиваемость
+  S -> M : выбрать(период) [средний запас и расход]
+else точность прогноза
+  S -> F : сравнитьСФактом(период) [WAPE, смещение]
+else ABC/XYZ
+  S -> SL : выбрать(период) [выручка и вариация спроса]
+else закупки
+  S -> Z : выбрать(период) [заказы и поставки]
+end
+S --> UI : таблица отчёта
+DIR -> UI : выгрузить в XLSX
+UI -> X : файл(отчёт)
+X --> UI : файл XLSX
+@enduml

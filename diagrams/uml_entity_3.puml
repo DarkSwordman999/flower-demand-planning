@@ -1,0 +1,56 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+class Продажа <<entity>> {
+ {field} ts: дата и время
+ {field} day: дата
+ {field} channel: строка(20)
+ {field} total: дробное
+}
+class СтрокаПродажи <<entity>> {
+ {field} qty: дробное
+ {field} price: дробное
+ {field} discount: дробное
+ {field} cost: дробное
+}
+class ПродажиЗаДень <<entity>> {
+ {field} day: дата
+ {field} qty: дробное
+ {field} revenue: дробное
+}
+class КаналПродаж <<entity>> {
+ {field} code: строка(30)
+ {field} name: строка(100)
+ {field} key_hash: строка(64)
+ {field} price_factor: дробное
+ {field} active: логическое
+ {field} created_at: дата и время
+}
+class ОнлайнЗаказ <<entity>> {
+ {field} created_at: дата и время
+ {field} customer_name: строка(200)
+ {field} phone: строка(50)
+ {field} delivery_date: дата
+ {field} status: строка(20)
+ {field} total: дробное
+ {field} comment: текст
+}
+class СтрокаОнлайнЗаказа <<entity>> {
+ {field} qty: дробное
+ {field} price: дробное
+}
+class Резерв <<entity>> {
+ {field} qty: дробное
+}
+Продажа "1" -- "0..*" СтрокаПродажи
+КаналПродаж "1" -- "0..*" ОнлайнЗаказ
+Продажа "1" -- "0..*" ОнлайнЗаказ
+ОнлайнЗаказ "1" -- "0..*" СтрокаОнлайнЗаказа
+СтрокаОнлайнЗаказа "1" -- "0..*" Резерв
+@enduml

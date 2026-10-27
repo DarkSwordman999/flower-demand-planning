@@ -1,0 +1,48 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+class КарточкаЗаказа <<boundary>> {
+ +отправитьСогласование()
+ +принятьРешениеЗаказу()
+}
+class СервисПланированияЗакупок <<control>> {
+ +перевести(...)
+ -проверитьПереход()
+ -проверитьРоль()
+}
+class ЗаказПоставщику <<entity>> {
+ {field} number: строка(30)
+ {field} order_date: дата
+ {field} expected_date: дата
+ {field} next_delivery_date: дата
+ {field} status: строка(20)
+ {field} total: дробное
+ --
+ +заказыНедели(дата)
+ +setСтатус(...)
+}
+class Параметр <<entity>> {
+ {field} key: строка(64)
+ {field} value: текст
+ --
+ +бюджетНедели()
+}
+class ЖурналАудита <<entity>> {
+ {field} ts: дата и время
+ {field} user_login: строка(64)
+ {field} action: строка(100)
+ {field} entity: строка(50)
+ {field} details: текст
+ --
+ +записать(смена статуса заказа)
+}
+КарточкаЗаказа --> СервисПланированияЗакупок
+СервисПланированияЗакупок --> Параметр
+СервисПланированияЗакупок --> ЗаказПоставщику
+СервисПланированияЗакупок --> ЖурналАудита
+@enduml

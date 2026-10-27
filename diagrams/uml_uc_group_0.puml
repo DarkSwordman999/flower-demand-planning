@@ -1,0 +1,41 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+left to right direction
+actor "Менеджер\nпо закупкам" as MZ
+actor "Директор" as DIR
+actor "Аналитик" as AN
+actor "Время" as TM
+actor "Поставщик" as SUP <<system>>
+actor "Погодный сервис" as WS <<system>>
+rectangle "Прогнозирование и закупки" {
+  usecase "Вести календарь\nи сценарии праздников" as U3
+  usecase "Утвердить сценарий" as U3a
+  usecase "Построить прогноз спроса" as U4
+  usecase "Получить прогноз погоды" as U4a
+  usecase "Обновить версию\nмодели прогноза" as U5
+  usecase "Сформировать план закупок" as U6
+  usecase "Скорректировать\nрекомендацию" as U6a
+  usecase "Спланировать закупки\nк празднику" as U7
+  usecase "Согласовать заказ" as U8
+  usecase "Отправить заказ\nи отследить поставку" as U9
+}
+MZ --> U3
+DIR --> U3a
+AN --> U4
+TM --> U4
+AN --> U5
+MZ --> U6
+MZ --> U9
+DIR --> U8
+U3a .> U3 : <<extend>>
+U4 ..> U4a : <<include>>
+U4a --> WS
+U6a .> U6 : <<extend>>
+U7 .> U6 : <<extend>>
+U8 .> U6 : <<extend>>
+U9 --> SUP
+@enduml

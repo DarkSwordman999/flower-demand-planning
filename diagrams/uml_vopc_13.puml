@@ -1,0 +1,69 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+class APIИнтернетМагазина <<boundary>> {
+ +передатьЗаказ(...)
+}
+class СервисИнтернетМагазина <<control>> {
+ +создатьЗаказ(канал, данные)
+ -проверитьЗаказ()
+ +выполнить(заказ)
+}
+class КаналПродаж <<entity>> {
+ {field} code: строка(30)
+ {field} name: строка(100)
+ {field} key_hash: строка(64)
+ {field} price_factor: дробное
+ {field} active: логическое
+ --
+ +найтиПоКлючу(SHA-256)
+}
+class ОнлайнЗаказ <<entity>> {
+ {field} customer_name: строка(200)
+ {field} phone: строка(50)
+ {field} delivery_date: дата
+ {field} status: строка(20)
+ {field} total: дробное
+ {field} comment: текст
+ --
+ +найти(номер)
+ +создать(...)
+ +setСтатус(выполнен)
+}
+class Партия <<entity>> {
+ {field} received_at: дата
+ {field} expiry_date: дата
+ {field} qty_initial: дробное
+ {field} qty: дробное
+ {field} reserved: дробное
+ {field} cost: дробное
+ --
+ +свободноНаДату(...)
+}
+class Резерв <<entity>> {
+ {field} qty: дробное
+ --
+ +зарезервировать(партии по FEFO)
+ +снятьРезерв()
+}
+class ЭкранОнлайнЗаказов <<boundary>> {
+ +выполнитьЗаказ()
+}
+class СервисПродаж <<control>> {
+ +записатьЧек(...)
+}
+APIИнтернетМагазина --> СервисИнтернетМагазина
+СервисИнтернетМагазина --> КаналПродаж
+СервисИнтернетМагазина --> ОнлайнЗаказ
+СервисИнтернетМагазина --> Партия
+СервисИнтернетМагазина --> Резерв
+ЭкранОнлайнЗаказов --> СервисИнтернетМагазина
+СервисИнтернетМагазина --> СервисПродаж
+КаналПродаж "1" -- "0..*" ОнлайнЗаказ
+Партия "1" -- "0..*" Резерв
+@enduml

@@ -1,0 +1,26 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+start
+:Выбрать партии салона,
+до срока которых ≤ N дней;
+while (Есть партия?) is (да)
+  :Ожидаемые продажи до срока
+  (P50, FEFO среди партий товара);
+  :Непроданный остаток;
+  if (Остаток > 0?) then (да)
+    :Скидка = 10 % + 40 % × доля
+    непроданного, округлить до 5 %;
+  else (нет)
+    :Продастся без уценки;
+  endif
+endwhile (нет)
+:Флорист подтверждает уценку;
+:Новая цена партии;
+:Выгрузка цены в кассы
+при очередном обмене;
+stop
+@enduml

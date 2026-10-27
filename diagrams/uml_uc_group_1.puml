@@ -1,0 +1,44 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+left to right direction
+actor "Кладовщик" as KL
+actor "Продавец-\nфлорист" as PF
+actor "Менеджер\nинтернет-магазина" as SM
+actor "Время" as TM
+actor "«1С:Розница»,\nкассы" as C1 <<system>>
+actor "Интернет-магазин,\nканалы продаж" as WEB <<system>>
+rectangle "Запасы и продажи" {
+  usecase "Принять поставку" as U10
+  usecase "Напечатать этикетки" as U10a
+  usecase "Переместить товар" as U11
+  usecase "Провести инвентаризацию" as U12
+  usecase "Продать товар в салоне" as U13
+  usecase "Списать партии по FEFO" as F
+  usecase "Обменяться данными\nс «1С» и кассами" as U14
+  usecase "Обработать онлайн-заказ" as U15
+  usecase "Зарезервировать\nпредзаказы" as R
+  usecase "Уценить партии" as U17
+  usecase "Списать партии" as U18
+}
+KL --> U10
+KL --> U11
+KL --> U12
+KL --> U18
+PF --> U13
+PF --> U17
+PF --> U18
+SM --> U15
+C1 --> U14
+TM --> U14
+WEB --> U15
+U10a .> U10 : <<extend>>
+U13 ..> F : <<include>>
+U14 ..> F : <<include>>
+U10 ..> R : <<include>>
+U11 ..> R : <<include>>
+U15 ..> R : <<include>>
+@enduml

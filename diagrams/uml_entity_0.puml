@@ -1,0 +1,71 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+class ГруппаТоваров <<entity>> {
+ {field} name: строка(100)
+}
+class Товар <<entity>> {
+ {field} name: строка(200)
+ {field} kind: строка(100)
+ {field} variety: строка(100)
+ {field} stem_length: целое
+ {field} color: строка(50)
+ {field} unit: строка(20)
+ {field} shelf_life_days: целое
+ {field} pack_multiple: целое
+ {field} barcode: строка(50)
+ {field} price: дробное
+ {field} active: логическое
+}
+class Поставщик <<entity>> {
+ {field} name: строка(200)
+ {field} country: строка(100)
+ {field} lead_time_days: целое
+ {field} min_order_sum: дробное
+ {field} email: строка(200)
+ {field} order_method: строка(20)
+ {field} order_url: строка(300)
+ {field} order_api_key: строка(200)
+ {field} order_weekdays: строка(20)
+ {field} reliability: дробное
+ {field} active: логическое
+}
+class УсловиеПоставки <<entity>> {
+ {field} price: дробное
+ {field} pack_multiple: целое
+}
+class МестоХранения <<entity>> {
+ {field} name: строка(100)
+ {field} type: строка(20)
+ {field} active: логическое
+}
+class СобытиеКалендаря <<entity>> {
+ {field} date: дата
+ {field} name: строка(200)
+ {field} type: строка(20)
+ {field} recurring: логическое
+ {field} coefficient: дробное
+}
+class СценарийПраздника <<entity>> {
+ {field} name: строка(200)
+ {field} event_date: дата
+ {field} days_before: целое
+ {field} last_delivery_date: дата
+ {field} coefficients: JSON
+ {field} approved: логическое
+ {field} comment: текст
+}
+class ПричинаСписания <<entity>> {
+ {field} name: строка(200)
+}
+ГруппаТоваров "1" -- "0..*" Товар
+Поставщик "1" -- "0..*" УсловиеПоставки
+Товар "1" -- "0..*" УсловиеПоставки
+ГруппаТоваров "1" -- "0..*" СобытиеКалендаря
+@enduml

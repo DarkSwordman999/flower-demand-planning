@@ -1,0 +1,86 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+class ПланировщикЗадач <<control>> {
+ +расчётПрогноза()
+}
+class СервисПрогнозирования <<control>> {
+ +рассчитать(дата, по расписанию)
+ -подготовитьРяды()
+}
+class МодельПрогноза <<entity>> {
+ {field} version: целое
+ {field} algorithm: строка(30)
+ {field} params: JSON
+ {field} wape: дробное
+ {field} bias: дробное
+ {field} details: JSON
+ --
+ +опубликованная()
+}
+class РасчётПрогноза <<entity>> {
+ {field} started_at: дата и время
+ {field} finished_at: дата и время
+ {field} base_date: дата
+ {field} status: строка(20)
+ {field} series: целое
+ {field} message: текст
+ --
+ +создать(статус = running)
+ +setСтатус(...)
+}
+class ПродажиЗаДень <<entity>> {
+ {field} day: дата
+ {field} qty: дробное
+ {field} revenue: дробное
+ --
+ +ряды(история)
+}
+class ДеньДефицита <<entity>> {
+ {field} day: дата
+ --
+ +дниДефицита(история)
+}
+class СобытиеКалендаря <<entity>> {
+ {field} date: дата
+ {field} name: строка(200)
+ {field} type: строка(20)
+ {field} recurring: логическое
+ {field} coefficient: дробное
+ --
+ +события(история, горизонт)
+}
+class АдаптерПогоды <<control>> {
+ +температуры(период)
+}
+class МоделиВременныхРядов <<control>> {
+ +прогнозГруппы(ряды, алгоритм)
+ -выбратьМодель()
+}
+class Прогноз <<entity>> {
+ {field} day: дата
+ {field} p50: дробное
+ {field} p80: дробное
+ {field} p95: дробное
+ {field} sigma: дробное
+ {field} event_coef: дробное
+ --
+ +сохранить(...)
+}
+ПланировщикЗадач --> СервисПрогнозирования
+СервисПрогнозирования --> МодельПрогноза
+СервисПрогнозирования --> РасчётПрогноза
+СервисПрогнозирования --> ПродажиЗаДень
+СервисПрогнозирования --> ДеньДефицита
+СервисПрогнозирования --> СобытиеКалендаря
+СервисПрогнозирования --> АдаптерПогоды
+СервисПрогнозирования --> МоделиВременныхРядов
+СервисПрогнозирования --> Прогноз
+МодельПрогноза "1" -- "0..*" РасчётПрогноза
+РасчётПрогноза "1" -- "0..*" Прогноз
+@enduml

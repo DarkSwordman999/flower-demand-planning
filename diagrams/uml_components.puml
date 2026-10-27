@@ -1,0 +1,46 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+package "Клиентская часть (React)" {
+  [Экраны: вход, справочники, прогноз,\nзакупки, приёмка (ТСД), запасы, продажи,\nонлайн-заказы, сроки, отчёты, администрирование] as ui
+}
+package "Сервер (backend/floraplan)" {
+  [api\n(REST, роли, API сайта, HTTP-сервис «1С»)] as api
+  [purchasing, supplier_send] as pur
+  [inventory, receiving, expiry] as inv
+  [sales, shop, onec] as sal
+  [forecasting, tsmodels\n(параллельный расчёт)] as fc
+  [weather] as wth
+  [analytics, xlsx] as rep
+  [models, db, migrations] as m
+  [scheduler] as sch
+}
+database "БД\n(PostgreSQL / SQLite)" as db
+interface "REST /api" as rest
+interface "API сайта\n(X-API-Key)" as shopapi
+interface "HTTP-сервис «1С»" as onecapi
+ui --> rest
+rest - api
+shopapi - api
+onecapi - api
+api --> pur
+api --> inv
+api --> sal
+api --> fc
+api --> rep
+pur --> fc
+pur --> inv
+sal --> inv
+fc --> wth
+sch --> fc
+sch --> sal
+pur --> m
+inv --> m
+sal --> m
+fc --> m
+rep --> m
+m --> db
+@enduml

@@ -1,0 +1,17 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide empty description
+state "Кандидат" as candidate
+state "Опубликована" as published
+state "В архиве" as archived
+state "Отклонена" as rejected
+[*] --> candidate : создать версию\n(оценка WAPE)
+candidate --> published : опубликовать\n[WAPE не хуже]
+candidate --> rejected : опубликовать\n[WAPE хуже]
+published --> archived : опубликована\nдругая версия
+rejected --> [*]
+@enduml

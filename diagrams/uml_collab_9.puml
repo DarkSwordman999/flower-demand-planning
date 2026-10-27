@@ -1,0 +1,24 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam rectangle {
+ BorderColor black
+}
+actor "Кладовщик" as KL
+rectangle ":ЭкранЗапасов\n«boundary»" as UI
+rectangle ":СервисЗапасов\n«control»" as S
+rectangle ":Партия\n«entity»" as P
+rectangle ":ДвижениеЗапаса\n«entity»" as M
+rectangle ":СервисИнтернетМагазина\n«control»" as SH
+rectangle ":ЖурналАудита\n«entity»" as AU
+KL -- UI : "1: указать товар, откуда, куда и\nколичество ↓"
+UI -- S : "2: переместить(товар, откуда,\nкуда, количество) ↓\n5: [не хватает] «Недостаточно\nтовара: доступно N» ↑\n12: [хватает] созданные партии ↑"
+S -- S : "3: проверитьМеста() [разные,\nсуществуют]"
+S -- P : "4: доступно(товар, откуда) ↓\n6: [хватает]\nсписатьПоFEFO(откуда,\nколичество) ↓\n8: [хватает] создать(куда, тот\nже срок и себестоимость,\nисходная партия) ↓"
+S -- M : "7: [хватает]\nсоздать(перемещение, расход) ↓\n9: [хватает]\nсоздать(перемещение, приход) ↓"
+S -- AU : "10: [хватает]\nзаписать(перемещение товара) ↓"
+S -- SH : "11: [хватает]\nзарезервироватьПредзаказы(куда)\n↓"
+@enduml

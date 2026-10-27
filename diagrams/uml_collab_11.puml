@@ -1,0 +1,28 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam rectangle {
+ BorderColor black
+}
+actor "Продавец-флорист" as PF
+rectangle ":ЭкранПродаж\n«boundary»" as UI
+rectangle ":СервисПродаж\n«control»" as S
+rectangle ":Товар\n«entity»" as T
+rectangle ":Продажа\n«entity»" as SL
+rectangle ":Партия\n«entity»" as P
+rectangle ":ДвижениеЗапаса\n«entity»" as M
+rectangle ":ПродажиЗаДень\n«entity»" as DS
+rectangle ":ДеньДефицита\n«entity»" as SO
+PF -- UI : "1: сканировать товары, ввести\nколичество и скидку ↓"
+UI -- S : "2: записатьЧек(салон, строки) ↓\n12: чек записан ↑"
+S -- T : "3: найти(штрихкод) ↓"
+S -- SL : "4: создать(салон, время, канал =\nкасса) ↓\n8: [для каждой строки]\nдобавитьСтроку(партия, цена с\nучётом уценки) ↓"
+S -- P : "5: [для каждой строки]\nпартииFEFO(товар, салон)\n[сначала с ранним сроком] ↓\n6: [для каждой строки]\nуменьшитьОстаток(количество) ↓"
+S -- M : "7: [для каждой строки]\nсоздать(продажа) ↓"
+S -- DS : "9: [для каждой строки]\nдобавить(день, количество,\nвыручка) ↓"
+S -- SO : "10: [товар закончился]\nотметить(товар, салон, день) ↓"
+S -- S : "11: [продано больше учётного\nостатка] записатьРасхождение()"
+@enduml

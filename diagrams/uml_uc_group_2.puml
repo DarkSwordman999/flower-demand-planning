@@ -1,0 +1,40 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+left to right direction
+actor "Сотрудник" as ST
+actor "Директор" as DIR
+actor "Аналитик" as AN
+actor "Менеджер\nпо закупкам" as MZ
+actor "Администратор" as AD
+actor "Время" as TM
+ST <|-- DIR
+ST <|-- AN
+ST <|-- MZ
+ST <|-- AD
+rectangle "Справочники, отчёты, администрирование" {
+  usecase "Войти в систему" as U0
+  usecase "Вести номенклатуру товаров" as U1
+  usecase "Вести поставщиков\nи условия поставки" as U2
+  usecase "Сформировать\nаналитический отчёт" as U19
+  usecase "Подключить канал продаж" as U16
+  usecase "Администрировать систему" as U20
+  usecase "Создать резервную копию" as U20a
+  usecase "Обезличить закрытые\nонлайн-заказы" as U20b
+}
+ST --> U0
+MZ --> U1
+AN --> U1
+MZ --> U2
+DIR --> U19
+AN --> U19
+MZ --> U19
+AD --> U20
+U16 .> U20 : <<extend>>
+TM --> U20a
+TM --> U20b
+U20a .> U20 : <<extend>>
+@enduml

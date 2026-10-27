@@ -1,0 +1,20 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide empty description
+state "Предзаказ" as pre
+state "Зарезервирован" as reserved
+state "Выполнен" as done
+state "Отменён" as cancelled
+[*] --> reserved : заказ принят\n[товара хватает]
+[*] --> pre : заказ принят\n[товара не хватает]
+pre --> reserved : товар поступил\n(приёмка, перемещение)
+reserved --> done : букет выдан / продажа
+pre --> cancelled : отмена
+reserved --> cancelled : отмена / снять резерв
+done --> [*]
+cancelled --> [*] : через срок хранения —\nобезличивание ПДн
+@enduml

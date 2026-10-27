@@ -1,0 +1,22 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam rectangle {
+ BorderColor black
+}
+actor "Менеджер по закупкам" as MZ
+rectangle ":ЭкранСправочников\n«boundary»" as UI
+rectangle ":СервисСправочников\n«control»" as S
+rectangle ":СобытиеКалендаря\n«entity»" as EV
+rectangle ":СценарийПраздника\n«entity»" as SC
+actor "Директор" as DIR
+MZ -- UI : "1: добавить событие: дата, тип,\nежегодно, коэффициент или группа\nакции ↓\n4: создать сценарий праздника:\nдата, начало пика, последняя\nпоставка, коэффициенты групп ↓"
+UI -- S : "2: создатьСобытие(данные) ↓\n5: создатьСценарий(данные) ↓\n9: утвердитьСценарий(сценарий) ↓\n11: сценарий учитывается в плане\nзакупок ↑"
+S -- EV : "3: создать() [без коэффициента —\nоценка по истории] ↓"
+S -- S : "6: проверитьСценарий()\n[последняя поставка не позже\nпраздника]"
+S -- SC : "7: создать(утверждён = нет) ↓\n10: setУтверждён(да) ↓"
+UI -- DIR : "8: утвердить сценарий ↑"
+@enduml

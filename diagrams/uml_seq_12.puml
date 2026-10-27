@@ -1,0 +1,32 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+actor "Время" as TM
+control "ПланировщикЗадач" as SCH
+control "АдаптерКасс" as A
+participant "«1С:Розница»" as C1
+control "СервисПродаж" as S
+entity "Продажа" as SL
+entity "Уценка" as MD
+entity "ЖурналОбмена" as IL
+TM -> SCH : загрузкаЧеков() [ежечасно]
+SCH -> A : загрузитьПапку()
+A -> A : разобратьФайлы() [JSON или CSV]
+loop для каждого чека
+  A -> S : записатьЧек(точка, строки, номер чека)
+  alt чек уже загружен
+    S --> A : пропустить без дубликата
+  else новый
+    S -> SL : создать()
+  end
+end
+A -> A : перенестиВProcessed()
+A -> IL : записать(загружено, ошибки)
+C1 -> A : ценыДляКасс() [GET /api/onec/prices]
+A -> MD : невыгруженныеУценки()
+A --> C1 : базовые цены и цены уценённых партий
+A -> MD : setВыгружена()
+@enduml

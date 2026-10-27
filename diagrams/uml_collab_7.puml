@@ -1,0 +1,24 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam rectangle {
+ BorderColor black
+}
+actor "Менеджер по закупкам" as MZ
+rectangle ":КарточкаЗаказа\n«boundary»" as UI
+rectangle ":СервисПланированияЗакупок\n«control»" as S
+rectangle ":АдаптерПоставщика\n«control»" as A
+rectangle ":Поставщик" as SUP
+rectangle ":ЗаказПоставщику\n«entity»" as Z
+rectangle ":ЖурналОбмена\n«entity»" as IL
+MZ -- UI : "1: отправить поставщику ↓\n10: отметить подтверждение и\nотгрузку ↓\n13: [поставка принята] закрыть\nзаказ ↓"
+UI -- S : "2: перевести(заказ, send) ↓\n11: перевести(заказ, confirm,\nin_transit) ↓\n14: [поставка принята]\nперевести(заказ, close) ↓"
+S -- A : "3: отправить(заказ) [способ\nпоставщика] ↓\n7: [API не приняло заказ] ошибка\n502 ↑"
+A -- A : "4: [e-mail] заказВXLSX()"
+A -- SUP : "5: [e-mail] письмо с файлом\nзаказа ↓\n6: [API] POST заказ в JSON ↓"
+A -- IL : "8: записать(отправка заказа) ↓"
+S -- Z : "9: setСтатус(отправлен) [время\nотправки] ↓\n12: setСтатус(подтверждён, в\nпути) ↓\n15: [поставка принята]\nsetСтатус(закрыт) ↓"
+@enduml

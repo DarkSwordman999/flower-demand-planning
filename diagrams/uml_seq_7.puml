@@ -1,0 +1,36 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+actor "Менеджер по закупкам" as MZ
+boundary "КарточкаЗаказа" as UI
+control "СервисПланированияЗакупок" as S
+control "АдаптерПоставщика" as A
+participant "Поставщик" as SUP
+entity "ЗаказПоставщику" as Z
+entity "ЖурналОбмена" as IL
+MZ -> UI : отправить поставщику
+UI -> S : перевести(заказ, send)
+S -> A : отправить(заказ) [способ поставщика]
+alt e-mail
+  A -> A : заказВXLSX()
+  A -> SUP : письмо с файлом заказа
+else API
+  A -> SUP : POST заказ в JSON
+  alt API не приняло заказ
+    A --> S : ошибка 502
+  end
+end
+A -> IL : записать(отправка заказа)
+S -> Z : setСтатус(отправлен) [время отправки]
+MZ -> UI : отметить подтверждение и отгрузку
+UI -> S : перевести(заказ, confirm, in_transit)
+S -> Z : setСтатус(подтверждён, в пути)
+opt поставка принята
+  MZ -> UI : закрыть заказ
+  UI -> S : перевести(заказ, close)
+  S -> Z : setСтатус(закрыт)
+end
+@enduml

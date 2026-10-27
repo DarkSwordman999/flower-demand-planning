@@ -4,31 +4,31 @@ skinparam dpi 150
 skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam monochrome true
-package "frontend/pages (экраны React)" as ui
-package "api (REST API, роли доступа)" as api
-package "purchasing (планирование закупок)" as pur
+package "frontend/pages\n(экраны React)" as ui
+package "api\n(REST API, роли, API сайта и «1С»)" as api
+package "purchasing, supplier_send\n(планирование и отправка заказов)" as pur
 package "inventory, receiving, expiry\n(партии, приёмка, сроки)" as inv
-package "sales, shop (продажи и онлайн-заказы)" as sal
-package "forecasting, tsmodels (прогнозирование)" as fc
-package "onec, weather, supplier_send, mail\n(интеграции)" as integ
-package "analytics, xlsx (аналитика и отчёты)" as rep
-package "models (общие сущности)" as dom
+package "sales, shop, onec\n(продажи, онлайн-заказы, кассы)" as sal
+package "forecasting, tsmodels, weather\n(прогнозирование)" as fc
+package "analytics, xlsx\n(отчёты)" as rep
+package "models\n(классы-сущности)" as dom
+package "scheduler, audit, security" as infra
 ui ..> api
 api ..> pur
 api ..> inv
 api ..> sal
+api ..> fc
 api ..> rep
-api ..> integ
+api ..> infra
 pur ..> fc
 pur ..> inv
-pur ..> integ
+inv ..> sal
 sal ..> inv
-fc ..> sal
-fc ..> integ
-integ ..> sal
+fc ..> dom
 pur ..> dom
 inv ..> dom
 sal ..> dom
-fc ..> dom
 rep ..> dom
+infra ..> fc
+infra ..> sal
 @enduml

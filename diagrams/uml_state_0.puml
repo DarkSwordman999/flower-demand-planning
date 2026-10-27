@@ -1,0 +1,27 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide empty description
+state "Свежая" as fresh
+state "Срок истекает" as expiring
+state "Уценена" as marked
+state "Срок истёк" as expired
+state "Продана" as sold
+state "Списана" as written
+[*] --> fresh : приёмка или перемещение\n[годен до = дата + срок − сокращение]
+fresh --> expiring : до «годен до» ≤ N дней
+fresh --> sold : остаток = 0 (продажи)
+expiring --> marked : уценка подтверждена
+expiring --> sold : остаток = 0
+marked --> sold : остаток = 0
+expiring --> expired : наступил «годен до»
+marked --> expired : наступил «годен до»
+fresh --> written : списание всего остатка
+expiring --> written : списание всего остатка
+expired --> written : списание
+sold --> [*]
+written --> [*]
+@enduml

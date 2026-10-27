@@ -1,0 +1,30 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam rectangle {
+ BorderColor black
+}
+rectangle ":Интернет-магазин" as WEB
+rectangle ":APIИнтернетМагазина\n«boundary»" as API
+rectangle ":СервисИнтернетМагазина\n«control»" as S
+rectangle ":КаналПродаж\n«entity»" as CH
+rectangle ":ОнлайнЗаказ\n«entity»" as O
+rectangle ":Партия\n«entity»" as P
+rectangle ":Резерв\n«entity»" as R
+actor "Менеджер интернет-магазина" as SM
+rectangle ":ЭкранОнлайнЗаказов\n«boundary»" as UI
+rectangle ":СервисПродаж\n«control»" as SL
+WEB -- API : "1: передатьЗаказ(номер, дата\nдоставки, позиции) [X-API-Key] ↓"
+API -- S : "2: создатьЗаказ(канал, данные) ↓\n5: [заказ с этим номером уже\nесть] прежний заказ (без\nдубликата) ↑\n11: [новый] номер и статус ↑"
+S -- CH : "3: найтиПоКлючу(SHA-256) ↓"
+S -- O : "4: найти(номер) ↓\n8: [товара хватает]\nсоздать(статус = зарезервирован)\n↓\n10: [не хватает] создать(статус\n= предзаказ) ↓\n16: setСтатус(выполнен) ↓"
+S -- S : "6: [новый] проверитьЗаказ()\n[дата не прошла, количество > 0]"
+S -- P : "7: [новый] свободноНаДату(товар,\nместо канала, дата доставки) ↓"
+S -- R : "9: [товара хватает]\nзарезервировать(партии по FEFO)\n↓\n15: снятьРезерв() ↓"
+SM -- UI : "12: выполнить заказ [букет\nсобран и выдан] ↓"
+S -- UI : "13: выполнить(заказ) ↑"
+S -- SL : "14: записатьЧек(онлайн,\nзарезервированные партии) ↓"
+@enduml

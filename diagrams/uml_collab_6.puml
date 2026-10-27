@@ -1,0 +1,24 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam rectangle {
+ BorderColor black
+}
+actor "Менеджер по закупкам" as MZ
+rectangle ":КарточкаЗаказа\n«boundary»" as UI
+rectangle ":СервисПланированияЗакупок\n«control»" as S
+rectangle ":ЗаказПоставщику\n«entity»" as Z
+rectangle ":Параметр\n«entity»" as PS
+actor "Директор" as DIR
+rectangle ":ЖурналАудита\n«entity»" as AU
+MZ -- UI : "1: отправить на согласование ↓"
+UI -- S : "2: перевести(заказ, submit) ↓\n9: [сверх бюджета]\nперевести(заказ, approve или\nreject) ↓"
+S -- S : "3: проверитьПереход() [черновик,\nсумма > 0]\n10: [сверх бюджета]\nпроверитьРоль() [директор]"
+S -- PS : "4: бюджетНедели() ↓"
+S -- Z : "5: заказыНедели(дата) ↓\n6: [в пределах бюджета]\nsetСтатус(утверждён) [утвердил\nменеджер] ↓\n7: [сверх бюджета] setСтатус(на\nсогласовании) [сверх бюджета] ↓\n11: [утверждён]\nsetСтатус(утверждён) [утвердил\nдиректор] ↓\n12: [отклонён]\nsetСтатус(черновик)\n[комментарий] ↓"
+UI -- DIR : "8: [сверх бюджета] принять\nрешение по заказу с комментарием\n↑"
+S -- AU : "13: записать(смена статуса\nзаказа) ↓"
+@enduml

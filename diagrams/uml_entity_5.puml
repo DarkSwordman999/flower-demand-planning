@@ -1,0 +1,37 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+class Пользователь <<entity>> {
+ {field} login: строка(64)
+ {field} full_name: строка(200)
+ {field} role: строка(32)
+ {field} password_hash: строка(200)
+ {field} active: логическое
+ {field} created_at: дата и время
+}
+class Параметр <<entity>> {
+ {field} key: строка(64)
+ {field} value: текст
+}
+class ЖурналАудита <<entity>> {
+ {field} ts: дата и время
+ {field} user_login: строка(64)
+ {field} action: строка(100)
+ {field} entity: строка(50)
+ {field} details: текст
+}
+class ЖурналОбмена <<entity>> {
+ {field} ts: дата и время
+ {field} system: строка(30)
+ {field} direction: строка(10)
+ {field} status: строка(10)
+ {field} message: текст
+}
+Пользователь "1" -- "0..*" ЖурналАудита
+@enduml

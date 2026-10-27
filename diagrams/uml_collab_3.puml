@@ -1,0 +1,33 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam rectangle {
+ BorderColor black
+}
+actor "Время" as TM
+rectangle ":ПланировщикЗадач\n«control»" as SCH
+rectangle ":СервисПрогнозирования\n«control»" as S
+rectangle ":МодельПрогноза\n«entity»" as M
+rectangle ":РасчётПрогноза\n«entity»" as R
+rectangle ":ПродажиЗаДень\n«entity»" as DS
+rectangle ":ДеньДефицита\n«entity»" as SO
+rectangle ":СобытиеКалендаря\n«entity»" as EV
+rectangle ":АдаптерПогоды\n«control»" as W
+rectangle ":МоделиВременныхРядов\n«control»" as TS
+rectangle ":Прогноз\n«entity»" as F
+TM -- SCH : "1: расчётПрогноза() [ежедневно\n03:00] ↓"
+SCH -- S : "2: рассчитать(дата, по\nрасписанию) ↓"
+S -- M : "3: опубликованная() ↓"
+S -- R : "4: создать(статус = running) ↓\n14: [расчёт успешен]\nsetСтатус(ok) [рядов, время,\nмодели] ↓\n15: [ошибка] setСтатус(failed)\n[действует прежний прогноз] ↓"
+S -- DS : "5: ряды(история) ↓"
+S -- SO : "6: дниДефицита(история) ↓"
+S -- EV : "7: события(история, горизонт) ↓"
+S -- W : "8: температуры(период) ↓"
+S -- S : "9: подготовитьРяды() [дефицит,\nкоэффициенты событий и погоды]"
+S -- TS : "10: [для каждой товарной группы\n(параллельно)]\nпрогнозГруппы(ряды, алгоритм) ↓\n12: [для каждой товарной группы\n(параллельно)] P50, P80, P95 по\nдням ↑"
+TS -- TS : "11: [для каждой товарной группы\n(параллельно)] выбратьМодель()\n[WAPE на отложенных днях]"
+S -- F : "13: [расчёт успешен]\nсохранить(товар, место, день,\nP50, P80, P95) ↓"
+@enduml

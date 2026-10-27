@@ -1,0 +1,18 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+node "Компьютер Windows 10/11 x64" as pc {
+  artifact "Веб-браузер" as br
+  component "ФлораПлан.exe\n(веб-сервер, интерфейс,\nпланировщик, прогноз)" as exe
+  database "data\\floraplan.db\n(SQLite)" as db
+  folder "data\\inbox_1c,\ndata\\backup" as fs
+}
+node "ТСД, ПК в локальной сети" as lan
+br --> exe : HTTP 127.0.0.1
+lan --> exe : HTTP (локальная сеть)
+exe --> db
+exe --> fs
+@enduml

@@ -1,0 +1,26 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+skinparam rectangle {
+ BorderColor black
+}
+actor "Кладовщик" as KL
+rectangle ":ЭкранЗапасов\n«boundary»" as UI
+rectangle ":СервисЗапасов\n«control»" as S
+rectangle ":ПричинаСписания\n«entity»" as RS
+rectangle ":Партия\n«entity»" as P
+rectangle ":Списание\n«entity»" as W
+rectangle ":ДвижениеЗапаса\n«entity»" as M
+rectangle ":ЖурналАудита\n«entity»" as AU
+KL -- UI : "1: открыть партии с истёкшим\nсроком ↓\n4: отметить партии, количество,\nпричину ↓"
+UI -- S : "2: просроченные(место) ↓\n5: списать(позиции, причина,\nкомментарий) ↓\n13: номер акта, XLSX для печати\n↑"
+S -- P : "3: выбрать(годен до < сегодня,\nостаток > 0) ↓\n9: [для каждой позиции]\nуменьшитьОстаток(количество) ↓"
+S -- RS : "6: найти(причина) ↓"
+S -- S : "7: номерАкта() [АС-ГГГГ-NNNN]\n8: [для каждой позиции]\nпроверитьКоличество() [не больше\nдоступного]"
+S -- W : "10: [для каждой позиции]\nсоздать(акт, партия, количество,\nсебестоимость, причина) ↓"
+S -- M : "11: [для каждой позиции]\nсоздать(списание) ↓"
+S -- AU : "12: записать(списание товара) ↓"
+@enduml

@@ -1,0 +1,32 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+start
+:Получить опубликованную версию модели;
+fork
+  :Продажи по дням;
+fork again
+  :Дни дефицита;
+fork again
+  :События календаря;
+fork again
+  :Погода (или климатическая норма);
+end fork
+:Восстановить спрос в дни дефицита;
+:Убрать влияние событий и погоды;
+:Прогноз групп товаров в нескольких процессах;
+while (Есть ряд «товар — место»?) is (да)
+  :Выбрать модель по WAPE;
+  :P50 и квантили P80, P95;
+endwhile (нет)
+if (Ошибка расчёта?) then (да)
+  :Оставить прежний прогноз,
+  записать ошибку в журнал;
+else (нет)
+  :Сохранить прогноз на горизонт;
+endif
+stop
+@enduml

@@ -1,0 +1,36 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide empty description
+state "Черновик" as draft
+state "На согласовании" as approval
+state "Утверждён" as approved
+state "Отправлен" as sent
+state "Подтверждён" as confirmed
+state "В пути" as transit
+state "Принят" as received
+state "Закрыт" as closed
+state "Отменён" as cancelled
+[*] --> draft : сформировать по рекомендации
+draft --> draft : изменить строки
+draft --> approved : на согласование\n[в пределах бюджета]
+draft --> approval : на согласование\n[сверх бюджета]
+approval --> approved : директор утвердил
+approval --> draft : директор отклонил
+approved --> sent : отправить (e-mail / API)
+sent --> confirmed : поставщик подтвердил
+sent --> transit : в пути
+confirmed --> transit : в пути
+transit --> received : приёмка завершена
+received --> closed : закрыть
+draft --> cancelled : отменить
+approval --> cancelled : отменить
+approved --> cancelled : отменить
+sent --> cancelled : отменить
+confirmed --> cancelled : отменить
+closed --> [*]
+cancelled --> [*]
+@enduml

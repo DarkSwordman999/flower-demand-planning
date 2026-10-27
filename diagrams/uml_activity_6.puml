@@ -1,0 +1,35 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+|Менеджер по закупкам|
+start
+:Отправить черновик на согласование;
+|Система|
+if (Сумма заказов недели в пределах бюджета?) then (да)
+  :Статус «Утверждён»;
+else (нет)
+  :Статус «На согласовании»;
+  |Директор|
+  if (Утвердить?) then (да)
+    |Система|
+    :Статус «Утверждён»;
+  else (нет)
+    |Система|
+    :Статус «Черновик»;
+    stop
+  endif
+endif
+|Менеджер по закупкам|
+:Отправить поставщику;
+|Система|
+if (Способ отправки?) then (e-mail)
+  :Письмо с заказом в XLSX;
+else (API)
+  :POST заказа в JSON;
+endif
+:Статус «Отправлен»;
+stop
+@enduml

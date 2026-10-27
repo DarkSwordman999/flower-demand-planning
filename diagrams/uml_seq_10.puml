@@ -1,0 +1,30 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+actor "Кладовщик" as KL
+boundary "ЭкранЗапасов" as UI
+control "СервисЗапасов" as S
+entity "Партия" as P
+entity "ДвижениеЗапаса" as M
+entity "ЖурналАудита" as AU
+KL -> UI : открыть партии места
+UI -> S : партии(место)
+S -> P : выбрать(место, остаток > 0)
+loop для каждой партии
+  KL -> UI : ввести фактическое количество
+end
+KL -> UI : провести инвентаризацию
+UI -> S : инвентаризация(факт по партиям)
+loop для каждой партии
+  S -> S : проверитьФакт() [не меньше 0 и резерва]
+  alt факт отличается от учёта
+    S -> P : setОстаток(факт)
+    S -> M : создать(инвентаризация, разница)
+  end
+end
+S -> AU : записать(инвентаризация, излишки и недостачи)
+S --> UI : расхождения
+@enduml

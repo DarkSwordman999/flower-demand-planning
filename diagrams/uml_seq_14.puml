@@ -1,0 +1,29 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+actor "Продавец-флорист" as PF
+boundary "ЭкранСроков" as UI
+control "СервисСроковИУценки" as S
+entity "Партия" as P
+entity "Прогноз" as F
+entity "Уценка" as MD
+entity "ЖурналАудита" as AU
+PF -> UI : открыть контроль сроков
+UI -> S : рекомендации(салон)
+S -> P : партииКИстечению() [до «годен до» ≤ N дней]
+S -> F : p50(партии) [до срока каждой]
+loop для каждой партии
+  S -> S : ожидаемыеПродажи() [FEFO среди партий товара]
+  S -> S : рекомендуемаяСкидка() [10–50 % по доле непроданного]
+end
+S --> UI : партии, прогноз продаж, скидки
+PF -> UI : подтвердить уценку
+UI -> S : уценить(партии, скидки)
+S -> S : проверитьСкидку() [в пределах 10–50 %, срок не истёк]
+S -> P : setСкидка()
+S -> MD : создать(скидка, новая цена, не выгружена)
+S -> AU : записать(уценка)
+@enduml

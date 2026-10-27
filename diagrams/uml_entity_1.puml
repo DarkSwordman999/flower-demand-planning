@@ -1,0 +1,62 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+class Поставщик <<entity>> {
+ {field} name: строка(200)
+ {field} country: строка(100)
+ {field} lead_time_days: целое
+ {field} min_order_sum: дробное
+ {field} email: строка(200)
+ {field} order_method: строка(20)
+ {field} order_url: строка(300)
+ {field} order_api_key: строка(200)
+ {field} order_weekdays: строка(20)
+ {field} reliability: дробное
+ {field} active: логическое
+}
+class ЗаказПоставщику <<entity>> {
+ {field} number: строка(30)
+ {field} order_date: дата
+ {field} expected_date: дата
+ {field} next_delivery_date: дата
+ {field} status: строка(20)
+ {field} total: дробное
+ {field} over_budget: логическое
+ {field} sent_at: дата и время
+ {field} comment: текст
+ {field} plan_info: JSON
+}
+class СтрокаЗаказа <<entity>> {
+ {field} recommended_qty: дробное
+ {field} ordered_qty: дробное
+ {field} price: дробное
+ {field} pack_multiple: целое
+ {field} change_reason: текст
+ {field} calc: JSON
+ {field} received_qty: дробное
+}
+class АктРасхождений <<entity>> {
+ {field} number: строка(30)
+ {field} created_at: дата и время
+ {field} lines: JSON
+}
+class СценарийПраздника <<entity>> {
+ {field} name: строка(200)
+ {field} event_date: дата
+ {field} days_before: целое
+ {field} last_delivery_date: дата
+ {field} coefficients: JSON
+ {field} approved: логическое
+ {field} comment: текст
+}
+Поставщик "1" -- "0..*" ЗаказПоставщику
+СценарийПраздника "1" -- "0..*" ЗаказПоставщику
+ЗаказПоставщику "1" -- "0..*" СтрокаЗаказа
+ЗаказПоставщику "1" -- "0..*" АктРасхождений
+@enduml

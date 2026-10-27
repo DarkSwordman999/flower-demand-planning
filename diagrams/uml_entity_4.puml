@@ -1,0 +1,49 @@
+@startuml
+!pragma layout smetana
+skinparam dpi 150
+skinparam defaultFontName Arial
+skinparam shadowing false
+skinparam monochrome true
+hide circle
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+class МодельПрогноза <<entity>> {
+ {field} version: целое
+ {field} algorithm: строка(30)
+ {field} params: JSON
+ {field} wape: дробное
+ {field} bias: дробное
+ {field} details: JSON
+ {field} status: строка(20)
+ {field} created_at: дата и время
+ {field} published_at: дата и время
+ {field} comment: текст
+}
+class РасчётПрогноза <<entity>> {
+ {field} started_at: дата и время
+ {field} finished_at: дата и время
+ {field} base_date: дата
+ {field} status: строка(20)
+ {field} series: целое
+ {field} message: текст
+ {field} trigger: строка(20)
+}
+class Прогноз <<entity>> {
+ {field} day: дата
+ {field} p50: дробное
+ {field} p80: дробное
+ {field} p95: дробное
+ {field} sigma: дробное
+ {field} event_coef: дробное
+ {field} algorithm: строка(30)
+}
+class Погода <<entity>> {
+ {field} day: дата
+ {field} temp: дробное
+ {field} precip: дробное
+ {field} source: строка(20)
+ {field} fetched_at: дата и время
+}
+МодельПрогноза "1" -- "0..*" РасчётПрогноза
+РасчётПрогноза "1" -- "0..*" Прогноз
+@enduml

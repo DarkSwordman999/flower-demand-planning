@@ -290,6 +290,13 @@ def build(blocks, out_path, cfg, work_no, work_title, topic=None, splits=None):
     splits = splits or {}
     doc = new_document()
     title_page(doc, cfg, work_no, work_title, topic)
+    render(doc, blocks, splits)
+    doc.save(out_path)
+
+
+def render(doc, blocks, splits=None):
+    """Блоки содержимого в документ (общая часть отчётов и руководств)."""
+    splits = splits or {}
     for b in blocks:
         kind = b[0]
         if kind == "h1":
@@ -331,7 +338,7 @@ def build(blocks, out_path, cfg, work_no, work_title, topic=None, splits=None):
             sp = doc.add_paragraph()
             sp.paragraph_format.line_spacing = 1.0
         elif kind == "fig":
-            _, path, caption, width = b
+            path, caption, width = b[1], b[2], b[3]
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.first_line_indent = Cm(0)
@@ -340,7 +347,7 @@ def build(blocks, out_path, cfg, work_no, work_title, topic=None, splits=None):
             p.paragraph_format.space_before = Pt(6)
             w, h = _img_size(path)
             width = min(width, TEXT_WIDTH_CM)
-            max_h = 21.0
+            max_h = b[4] if len(b) > 4 else 21.0
             if h / w * width > max_h:
                 width = max_h * w / h
             p.add_run().add_picture(path, width=Cm(width))
@@ -348,9 +355,37 @@ def build(blocks, out_path, cfg, work_no, work_title, topic=None, splits=None):
             c.paragraph_format.space_after = Pt(6)
         elif kind == "pb":
             doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+        elif kind == "code":  # команды и примеры: моноширинный шрифт без красной строки
+            for ln in b[1].split("\n"):
+                p = doc.add_paragraph()
+                pf = p.paragraph_format
+                pf.first_line_indent = Cm(0)
+                pf.left_indent = Cm(1.25)
+                pf.line_spacing = 1.0
+                pf.keep_with_next = True
+                p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+                r = p.add_run(ln if ln else " ")
+                r.font.name = "Courier New"
+                r.font.size = Pt(11)
+                r._element.get_or_add_rPr().get_or_add_rFonts().set(qn("w:hAnsi"), "Courier New")
+            p.paragraph_format.keep_with_next = False
+            p.paragraph_format.space_after = Pt(6)
+        elif kind == "note":  # «Примечание – …» (ГОСТ 2.105)
+            p = para(doc, "Примечание – " + b[1])
+        elif kind == "hc":  # заголовок по центру без номера (Аннотация, Содержание, Приложение)
+            p = doc.add_paragraph(style="Heading 1")
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.first_line_indent = Cm(0)
+            for k, line in enumerate(b[1].split("\n")):
+                if k:
+                    p.add_run().add_break()
+                _add_rich(p, line, bold=True)
+        elif kind == "hcn":  # то же, но не попадает в содержание
+            p = para(doc, b[1], indent=False, align=WD_ALIGN_PARAGRAPH.CENTER, keep_next=True)
+            for r in p.runs:
+                r.font.bold = True
         else:
             raise ValueError(kind)
-    doc.save(out_path)
 
 
 def _img_size(path):
@@ -365,6 +400,14 @@ def word_find_splits(word, path):
     Возвращает список изменений [(порядок таблицы, номер, 'add'|'del', индекс строки)] в порядке документа."""
     doc = word.Documents.Open(os.path.abspath(path), ReadOnly=True)
     try:
+        return analyze_splits(doc)
+    finally:
+        doc.Close(False)
+
+
+def analyze_splits(doc):
+    """То же для уже открытого документа."""
+    if True:
         doc.Repaginate()
         changes = []
         prev = {}  # num -> страница последней строки предыдущей части
@@ -388,8 +431,6 @@ def word_find_splits(word, path):
                     break
             prev[num] = t.Rows(n).Range.Information(3)
         return changes
-    finally:
-        doc.Close(False)
 
 
 def word_export_pdf(word, path, pdf_path):

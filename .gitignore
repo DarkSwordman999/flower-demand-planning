@@ -17,3 +17,4 @@ release/
 .env
 # демо-база учебной редакции (ветка coursework)
 app/*.db
+tools/report_generator/.pngopt.json

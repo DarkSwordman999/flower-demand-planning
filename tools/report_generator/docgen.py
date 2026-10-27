@@ -21,6 +21,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.section import WD_SECTION
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
+import pngopt
 
 FONT = "Times New Roman"
 TEXT_WIDTH_CM = 16.5
@@ -345,6 +346,8 @@ def render(doc, blocks, splits=None):
             p.paragraph_format.keep_with_next = True
             p.paragraph_format.line_spacing = 1.0
             p.paragraph_format.space_before = Pt(6)
+            if path.lower().endswith(".png"):
+                pngopt.ensure(path)   # сжатие без видимой потери качества
             w, h = _img_size(path)
             width = min(width, TEXT_WIDTH_CM)
             max_h = b[4] if len(b) > 4 else 21.0

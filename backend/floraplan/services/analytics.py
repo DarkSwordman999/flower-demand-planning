@@ -59,18 +59,16 @@ def sales(db: Session, date_from=None, date_to=None, group_by="group", location_
     a, b = _period(date_from, date_to)
     prods, locs = _refs(db)
     q = (db.query(SaleLine.product_id, Sale.location_id, Sale.day, func.sum(SaleLine.qty),
-                  func.sum(SaleLine.qty * SaleLine.price - SaleLine.discount), func.sum(SaleLine.qty * SaleLine.cost),
-                  func.count(func.distinct(Sale.id)))
+                  func.sum(SaleLine.qty * SaleLine.price - SaleLine.discount), func.sum(SaleLine.qty * SaleLine.cost))
          .join(Sale).filter(Sale.day >= a, Sale.day <= b))
     if location_id:
         q = q.filter(Sale.location_id == location_id)
-    agg = defaultdict(lambda: {"qty": 0.0, "revenue": 0.0, "cost": 0.0, "receipts": 0})
-    for pid, lid, day, qty, rev, cost, n in q.group_by(SaleLine.product_id, Sale.location_id, Sale.day):
+    agg = defaultdict(lambda: {"qty": 0.0, "revenue": 0.0, "cost": 0.0})
+    for pid, lid, day, qty, rev, cost in q.group_by(SaleLine.product_id, Sale.location_id, Sale.day):
         r = agg[_key(group_by, prods[pid], locs[lid], day)]
         r["qty"] += qty or 0
         r["revenue"] += rev or 0
         r["cost"] += cost or 0
-        r["receipts"] += n or 0
     rows = []
     for k, r in agg.items():
         margin = r["revenue"] - r["cost"]

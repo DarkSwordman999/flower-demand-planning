@@ -21,6 +21,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.section import WD_SECTION
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
+import omath
 import pngopt
 
 FONT = "Times New Roman"
@@ -169,7 +170,20 @@ def _two_side_line(doc, left, right):
 _BOLD_RE = re.compile(r"(\*\*.+?\*\*|__.+?__)")
 
 
+_MATH_RE = re.compile(r"(\$[^$]+\$)")
+
+
 def _add_rich(p, text, size=14, bold=False, italic=False):
+    """Текст с разметкой: **жирный**, __курсив__, $формула$ (LaTeX → формула Word)."""
+    text = text.replace("$$", "$")  # где отдельная строка невозможна, формула встраивается в текст
+    for chunk in _MATH_RE.split(text):
+        if len(chunk) > 2 and chunk.startswith("$") and chunk.endswith("$"):
+            omath.add_inline(p, chunk[1:-1], size)
+        elif chunk:
+            _add_plain(p, chunk, size, bold, italic)
+
+
+def _add_plain(p, text, size=14, bold=False, italic=False):
     for part in _BOLD_RE.split(text):
         if not part:
             continue
@@ -182,7 +196,24 @@ def _add_rich(p, text, size=14, bold=False, italic=False):
         _set_font(r, size, bold=b, italic=i)
 
 
+_DISPLAY_RE = re.compile(r"\$\$(.+?)\$\$")
+
+
 def para(doc, text, indent=True, align=None, keep_next=False, size=14):
+    if "$$" in text:  # формула отдельной строкой: текст до неё, формула по центру, «где …» без отступа
+        parts = _DISPLAY_RE.split(text)
+        p = None
+        for k, part in enumerate(parts):
+            if k % 2:
+                p = doc.add_paragraph()
+                p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                p.paragraph_format.first_line_indent = Cm(0)
+                p.paragraph_format.keep_with_next = True
+                omath.add_display(p, part, size)
+            elif part.strip(" ,;"):
+                p = para(doc, part.strip(" ,;"), indent=indent and k == 0, align=align,
+                         keep_next=keep_next or k < len(parts) - 1, size=size)
+        return p
     p = doc.add_paragraph()
     if not indent:
         p.paragraph_format.first_line_indent = Cm(0)
@@ -212,8 +243,19 @@ def bullet_list(doc, items, numbered=False):
 def _cell_text(cell, text, size=12, align=WD_ALIGN_PARAGRAPH.LEFT, keep_next=False, bold=False):
     cell.text = ""
     lines = text.split("\n") if text else [""]
-    for k, ln in enumerate(lines):
+    # формулы $$...$$ — отдельными строками ячейки: (это формула?, содержимое)
+    items = []
+    for ln in lines:
+        parts = _DISPLAY_RE.split(ln)
+        items += [(i % 2 == 1, x.strip(" ,;") if len(parts) > 1 else x) for i, x in enumerate(parts)
+                  if i % 2 or len(parts) == 1 or x.strip(" ,;")]
+    for k, (is_eq, ln) in enumerate(items):
         p = cell.paragraphs[0] if k == 0 else cell.add_paragraph()
+        if is_eq:
+            p.paragraph_format.first_line_indent = Cm(0)
+            p.paragraph_format.space_after = Pt(0)
+            omath.add_display(p, ln, size)
+            continue
         pf = p.paragraph_format
         pf.first_line_indent = Cm(0)
         pf.line_spacing = 1.0
@@ -358,6 +400,14 @@ def render(doc, blocks, splits=None):
             c.paragraph_format.space_after = Pt(6)
         elif kind == "pb":
             doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
+        elif kind == "eq":  # формула отдельной строкой по центру (ГОСТ 7.32), за ней — «где …»
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.first_line_indent = Cm(0)
+            p.paragraph_format.space_before = Pt(6)
+            p.paragraph_format.space_after = Pt(6)
+            p.paragraph_format.keep_with_next = True
+            omath.add_display(p, b[1])
         elif kind == "code":  # команды и примеры: моноширинный шрифт без красной строки
             for ln in b[1].split("\n"):
                 p = doc.add_paragraph()

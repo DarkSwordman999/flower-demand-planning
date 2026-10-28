@@ -6,138 +6,56 @@ skinparam shadowing false
 skinparam monochrome true
 hide circle
 skinparam linetype ortho
-entity "Товар" as tv {
- * id_товара
+entity "users\nПользователь" as us {
+ * id : INTEGER
  --
- наименование, вид, сорт
- длина_стебля, цвет
- срок_реализации_дн
- кратность_упаковки
+ login : TEXT (уник.)
+ password_hash : TEXT
 }
-entity "Поставщик" as ps {
- * id_поставщика
+entity "suppliers\nПоставщик" as sp {
+ * id : INTEGER
  --
- наименование, страна
- срок_поставки_дн
- мин_сумма_заказа
+ name : TEXT
+ phone : TEXT
+ lead_time_days : INTEGER
 }
-entity "Условие_поставки" as up {
- * id_условия
+entity "products\nТовар" as pr {
+ * id : INTEGER
  --
- id_товара (FK)
- id_поставщика (FK)
- цена, кратность
+ name, category : TEXT
+ price, purchase_price : REAL
+ shelf_life_days : INTEGER
+ pack_size : INTEGER
+ supplier_id : INTEGER (FK)
 }
-entity "Заказ_поставщику" as zp {
- * id_заказа
+entity "batches\nПартия" as bt {
+ * id : INTEGER
  --
- id_поставщика (FK)
- дата, ожидаемая_дата
- статус, сумма
+ product_id : INTEGER (FK)
+ received_date : TEXT
+ expiry_date : TEXT
+ quantity, remaining : INTEGER
 }
-entity "Строка_заказа" as sz {
- * id_строки
+entity "sales\nПродажа" as sl {
+ * id : INTEGER
  --
- id_заказа (FK)
- id_товара (FK)
- рекоменд_кол-во
- заказ_кол-во, цена
+ product_id : INTEGER (FK)
+ batch_id : INTEGER (FK)
+ sale_date : TEXT
+ quantity : INTEGER
+ price : REAL
 }
-entity "Место_хранения" as mh {
- * id_места
+entity "writeoffs\nСписание" as wo {
+ * id : INTEGER
  --
- наименование
- тип (склад / салон)
+ batch_id : INTEGER (FK)
+ writeoff_date : TEXT
+ quantity : INTEGER
+ reason : TEXT
 }
-entity "Партия" as pt {
- * id_партии
- --
- id_товара (FK)
- id_заказа (FK)
- id_места (FK)
- дата_поступления
- годен_до
- кол-во, остаток
- себестоимость
-}
-entity "Продажа" as pr {
- * id_продажи
- --
- id_места (FK)
- дата_время
- канал (салон / сайт)
-}
-entity "Строка_продажи" as sp {
- * id_строки
- --
- id_продажи (FK)
- id_партии (FK)
- кол-во, цена, скидка
-}
-entity "Списание" as sl {
- * id_списания
- --
- id_партии (FK)
- кол-во, причина, дата
-}
-entity "Прогноз" as fc {
- * id_прогноза
- --
- id_товара (FK)
- id_места (FK)
- id_модели (FK)
- дата, P50, P80, P95
-}
-entity "Модель_прогноза" as md {
- * id_модели
- --
- версия, алгоритм
- WAPE, статус
-}
-entity "Событие_календаря" as ev {
- * id_события
- --
- дата, наименование
- тип (праздник / акция)
-}
-entity "Канал_продаж" as ch {
- * id_канала
- --
- id_места (FK)
- код, наименование
- коэфф_цены, хеш_ключа
-}
-entity "Онлайн_заказ" as oz {
- * id_заказа
- --
- id_канала (FK)
- номер, дата_доставки
- статус, покупатель
-}
-entity "Резерв" as rz {
- * id_резерва
- --
- id_заказа (FK)
- id_партии (FK)
- кол-во
-}
-ps ||--o{ up
-tv ||--o{ up
-ps ||--o{ zp
-zp ||--|{ sz
-tv ||--o{ sz
-tv ||--o{ pt
-zp ||--o{ pt
-mh ||--o{ pt
-mh ||--o{ pr
-pr ||--|{ sp
-pt ||--o{ sp
-pt ||--o{ sl
-tv ||--o{ fc
-mh ||--o{ fc
-md ||--o{ fc
-mh ||--o{ ch
-ch ||--o{ oz
-oz ||--o{ rz
-pt ||--o{ rz
+sp |o--o{ pr
+pr ||--o{ bt
+pr ||--o{ sl
+bt |o--o{ sl
+bt ||--o{ wo
 @enduml

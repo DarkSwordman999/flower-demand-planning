@@ -5,41 +5,34 @@ skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam monochrome true
 left to right direction
-actor "Менеджер\nпо закупкам" as MZ
-actor "Продавец-\nфлорист" as PF
-actor "Директор" as DIR
-rectangle "Клиентская часть\n(веб-интерфейс, ТСД)" as UI
-rectangle "Серверная часть ИС" as SRV {
-  rectangle "Подсистема НСИ\n(номенклатура, поставщики)" as A
-  rectangle "Подсистема учёта\nзапасов и партий" as B
-  rectangle "Подсистема учёта\nпродаж и заказов" as C
-  rectangle "Подсистема прогнозирования\nспроса" as D
-  rectangle "Подсистема\nпланирования закупок" as E
-  rectangle "Подсистема управления\nсроками и уценкой" as F
-  rectangle "Подсистема аналитики\nи отчётности" as G
+skinparam componentStyle rectangle
+actor "Флорист-\nкассир" as PF
+actor "Владелец\nсалона" as DIR
+rectangle "Компьютер салона (Windows)" as PC {
+  rectangle "Веб-браузер" as UI
+  rectangle "Программа «ФлораПлан Базовая»\n(Python, Flask)" as SRV {
+    rectangle "Справочники товаров\nи поставщиков" as A
+    rectangle "Учёт партий,\nостатков и списаний" as B
+    rectangle "Продажи\nпо FEFO" as C
+    rectangle "Прогноз спроса\n(скользящее среднее)" as D
+    rectangle "Расчёт заказа\nпоставщику" as E
+    rectangle "Отчёт за 30 дней" as G
+  }
+  database "Файл базы данных\nSQLite (floraplan.db)" as DB
 }
-database "БД учёта\n(PostgreSQL / SQLite)" as DB
-database "Хранилище\nмоделей" as MR
-rectangle "Кассы (ККТ)\nи 1С" as KKT
-rectangle "Интернет-\nмагазин" as WEB
 rectangle "Поставщики" as SUP
-rectangle "Погодный\nсервис" as WTH
-MZ --> UI
 PF --> UI
 DIR --> UI
 UI --> A
 UI --> B
+UI --> C
 UI --> E
 UI --> G
-KKT --> C
-WEB --> C
 C --> D
-WTH --> D
 D --> E
 B --> E
-B --> F
-E --> SUP
-D --> MR
+A --> DB
 B --> DB
 C --> DB
+DIR ..> SUP : заказ по телефону\nили почте (вручную)
 @enduml

@@ -22,3 +22,4 @@ app/floraplan.db
 # окружение и пакеты для запуска без интернета (кладутся только в архив релиза)
 app/wheels/
 app/secret.key
+tools/report_generator/.pngopt.json

@@ -4,34 +4,16 @@ skinparam dpi 150
 skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam monochrome true
-node "ПК менеджера / директора\n<<device>>" as pc {
+node "Компьютер Салона\n<<Windows 10/11>>" as pc {
   artifact "Веб-браузер" as br
+  component "Python 3.11+\nFlask (app.py)\n127.0.0.1:5000" as be
+  database "floraplan.db\n(SQLite)" as db
+  artifact "run.bat, run.py\nwheels (пакеты)" as run
+  artifact "secret.key" as key
 }
-node "ТСД кладовщика\n<<Android>>" as tsd {
-  artifact "Браузер ТСД" as br2
-}
-node "Сервер Компании\n<<Linux, Docker Compose>>" as app {
-  component "proxy\n(Caddy, HTTPS)" as px
-  component "web\n(nginx + React)" as fe
-  component "api\n(FastAPI: REST API,\nинтеграции)" as be
-  component "scheduler\n(APScheduler: прогноз,\nобмен, резервные копии)" as sch
-  database "db\n(PostgreSQL 16)" as db
-}
-node "Кассы салонов\n<<ККТ>>" as kkt
-node "Сервер «1С:Розница»" as c1
-node "Интернет-магазин,\nмаркетплейсы" as web
-node "Погодный сервис\n(Open-Meteo)" as wth
-node "Почтовый сервер,\nAPI поставщиков" as mail
-br --> px : HTTPS
-br2 --> px : HTTPS
-px --> fe : HTTP
-fe --> be : REST
+node "Касса салона\n<<ККТ>>" as kkt
+run --> be : запуск
+br --> be : HTTP (только localhost)
 be --> db : SQL
-sch --> db : SQL
-c1 --> be : чеки (HTTP, JSON)
-kkt --> c1 : чеки
-web --> be : REST API (ключ канала)
-sch --> web : остатки и цены (15 мин)
-sch --> wth : HTTPS
-be --> mail : SMTP / HTTPS (заказы)
+be --> key : ключ сессии
 @enduml

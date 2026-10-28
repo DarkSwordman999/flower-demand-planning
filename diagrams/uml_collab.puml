@@ -5,16 +5,16 @@ skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam monochrome true
 left to right direction
-rectangle ":ЭкранПланаЗакупок" as UI
-rectangle ":СервисПланированияЗакупок" as S
-rectangle ":Прогноз" as F
+skinparam rectangle {
+ BorderColor black
+}
+rectangle ":ОбработчикПродаж" as C
+rectangle ":ПродажаFEFO" as L
+rectangle ":Товар" as T
 rectangle ":Партия" as P
-rectangle ":УсловиеПоставки" as U
-rectangle ":ЗаказПоставщику" as Z
-UI -- S : "1: сформироватьПлан() →\n8: ← рекомендуемый заказ"
-S -- F : "2: квантили() →"
-S -- P : "3: доступныйЗапас() →"
-S -- U : "4: условия() →"
-S -- S : "5: рассчитатьОбъём()\n6: округлитьДоКратности()"
-S -- Z : "7: создать(строки) →"
+rectangle ":Продажа" as S
+C -- L : "1: sell(товар, кол-во) →\n7: ← готово"
+L -- P : "2: stock() →\n4: годные партии по сроку →\n5: уменьшить остаток →"
+L -- T : "3: цена() →"
+L -- S : "6: создать(партия, кол-во, цена) →"
 @enduml

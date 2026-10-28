@@ -4,21 +4,17 @@ skinparam dpi 150
 skinparam defaultFontName Arial
 skinparam shadowing false
 skinparam monochrome true
-actor "Директор" as DIR
-boundary "ЭкранОтчётов" as UI
-control "СервисАналитики" as S
-entity "Продажа" as PR
+actor "Владелец" as OW
+boundary "report.html\n(Отчёт)" as UI
+control "report()" as C
+entity "Продажа" as S
 entity "Списание" as W
-entity "Партия" as P
-entity "Прогноз" as F
-DIR -> UI : выбрать отчёт и период
-UI -> S : сформировать(вид, период)
-S -> PR : выбрать(период)
-S -> W : выбрать(период)
-S -> P : себестоимость(период)
-S -> F : прогнозы(период)
-S -> S : рассчитать долю списаний, оборачиваемость, ABC/XYZ, WAPE
-S --> UI : таблицы и графики
-DIR -> UI : выгрузить в XLSX
-UI --> DIR : файл отчёта
+entity "Товар" as T
+OW -> UI : открыть отчёт
+UI -> C : GET /report
+C -> S : по товарам за 30 дней:\nколичество, выручка
+C -> W : по товарам за 30 дней:\nколичество, потери по цене закупки
+W -> T : цена закупки
+C -> C : итоги выручки и потерь
+C --> UI : две таблицы и итоги
 @enduml

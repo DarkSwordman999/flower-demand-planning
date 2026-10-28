@@ -81,10 +81,13 @@ def stock():
 def writeoff(batch_id):
     conn = db.get_db()
     batch = conn.execute("SELECT * FROM batches WHERE id = ?", (batch_id,)).fetchone()
-    if batch and batch["remaining"] > 0:
+    reason = request.form.get("reason", "").strip()
+    if not reason:
+        flash("Укажите причину списания")
+    elif batch and batch["remaining"] > 0:
         conn.execute(
             "INSERT INTO writeoffs (batch_id, writeoff_date, quantity, reason) VALUES (?, ?, ?, ?)",
-            (batch_id, date.today().isoformat(), batch["remaining"], request.form["reason"]),
+            (batch_id, date.today().isoformat(), batch["remaining"], reason),
         )
         conn.execute("UPDATE batches SET remaining = 0 WHERE id = ?", (batch_id,))
         conn.commit()
@@ -100,11 +103,23 @@ def products():
     conn = db.get_db()
     if request.method == "POST":
         f = request.form
+        # числа проверяются и на сервере: форму можно отправить в обход проверок браузера
+        try:
+            price, purchase = float(f["price"]), float(f["purchase_price"])
+            shelf, pack, supplier_id = int(f["shelf_life_days"]), int(f["pack_size"]), int(f["supplier_id"])
+        except (KeyError, ValueError):
+            flash("Цены, срок реализации и упаковка — числа; выберите поставщика")
+            return redirect(url_for("products"))
+        if not f.get("name", "").strip() or min(price, purchase, shelf, pack) <= 0:
+            flash("Укажите название, а цены, срок реализации и упаковку — больше нуля")
+            return redirect(url_for("products"))
+        if conn.execute("SELECT 1 FROM suppliers WHERE id = ?", (supplier_id,)).fetchone() is None:
+            flash("Выберите поставщика")
+            return redirect(url_for("products"))
         conn.execute(
             "INSERT INTO products (name, category, price, purchase_price, shelf_life_days, pack_size, supplier_id) "
             "VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (f["name"], f["category"], float(f["price"]), float(f["purchase_price"]),
-             int(f["shelf_life_days"]), int(f["pack_size"]), int(f["supplier_id"])),
+            (f["name"].strip(), f.get("category", "").strip(), price, purchase, shelf, pack, supplier_id),
         )
         conn.commit()
         flash("Товар добавлен")
@@ -123,8 +138,12 @@ def suppliers():
     conn = db.get_db()
     if request.method == "POST":
         f = request.form
+        lead = f.get("lead_time_days", "")
+        if not f.get("name", "").strip() or not lead.isdigit() or not 0 < int(lead) <= 60:
+            flash("Укажите название, а срок поставки — целым числом дней от 1 до 60")
+            return redirect(url_for("suppliers"))
         conn.execute("INSERT INTO suppliers (name, phone, lead_time_days) VALUES (?, ?, ?)",
-                     (f["name"], f["phone"], int(f["lead_time_days"])))
+                     (f["name"].strip(), f.get("phone", "").strip(), int(lead)))
         conn.commit()
         flash("Поставщик добавлен")
         return redirect(url_for("suppliers"))
@@ -139,10 +158,15 @@ def suppliers():
 def receive():
     conn = db.get_db()
     if request.method == "POST":
-        product = conn.execute("SELECT * FROM products WHERE id = ?",
-                               (int(request.form["product_id"]),)).fetchone()
-        qty = int(request.form["quantity"])
-        if qty <= 0:
+        try:
+            product = conn.execute("SELECT * FROM products WHERE id = ?",
+                                   (int(request.form["product_id"]),)).fetchone()
+            qty = int(request.form["quantity"])
+        except (KeyError, ValueError):
+            product, qty = None, 0
+        if product is None:
+            flash("Выберите товар и укажите количество целым числом")
+        elif qty <= 0:
             flash("Количество должно быть больше нуля")
         else:
             today = date.today()
@@ -167,7 +191,15 @@ def sales():
     conn = db.get_db()
     if request.method == "POST":
         try:
-            logic.sell(conn, int(request.form["product_id"]), int(request.form["quantity"]), date.today())
+            product_id, qty = int(request.form["product_id"]), int(request.form["quantity"])
+        except (KeyError, ValueError):
+            flash("Выберите товар и укажите количество целым числом")
+            return redirect(url_for("sales"))
+        if conn.execute("SELECT 1 FROM products WHERE id = ?", (product_id,)).fetchone() is None:
+            flash("Выберите товар")
+            return redirect(url_for("sales"))
+        try:
+            logic.sell(conn, product_id, qty, date.today())
             flash("Продажа записана")
         except ValueError as e:
             flash(str(e))
